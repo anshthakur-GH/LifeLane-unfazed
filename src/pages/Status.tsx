@@ -12,7 +12,7 @@ export const Status: React.FC = () => {
   useEffect(() => {
     const fetchRequest = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`);
+        const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`);
         if (!res.ok) {
           throw new Error('Request not found');
         }
