@@ -275,7 +275,7 @@ router.put('/emergency-requests/:id', authenticateToken, isAdmin, async (req, re
 
     res.json({ message: 'Request updated successfully' });
   } catch (error) {
-    console.error('Error updating request:', error);
+    console.error('Error updating request (PUT route):', error);
     res.status(500).json({ error: 'Failed to update request' });
   }
 });
