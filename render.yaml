@@ -5,8 +5,8 @@ services:
     plan: free
     buildCommand: |
       npm install --production=false
-      npm install -g tailwindcss postcss autoprefixer
-      npx vite build
+      npm install -g vite
+      npm run build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
