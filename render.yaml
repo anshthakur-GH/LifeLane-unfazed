@@ -3,10 +3,7 @@ services:
     name: lifelane-emergency-interface
     env: node
     plan: free
-    buildCommand: |
-      cd /opt/render/project/src
-      npm install
-      npm run build
+    buildCommand: npm install;npx vite build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
