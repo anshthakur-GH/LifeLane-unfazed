@@ -229,7 +229,7 @@ router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
 
     res.json(requests[0]);
   } catch (error) {
-    console.error('Error fetching request:', error);
+    console.error('Error fetching request (ID route):', error);
     res.status(500).json({ error: 'Failed to fetch request' });
   }
 });
