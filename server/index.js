@@ -168,29 +168,28 @@ router.post('/login', async (req, res) => {
 });
 
 // POST: Save new emergency request
-router.post('/emergency-request', authenticateToken, async (req, res) => {
+router.post('/emergency-requests', authenticateToken, async (req, res) => {
   try {
-    const { patientName, age, problemDescription } = req.body;
+    const { patient_name, age, problem_description } = req.body;
     
-    if (!patientName || !age || !problemDescription) {
-      return res.status(400).json({
-        error: 'Missing required fields'
-      });
+    // Validate required fields
+    if (!patient_name || !age || !problem_description) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
+    // Insert new request
     const [result] = await pool.query(
       'INSERT INTO emergency_requests (user_id, patient_name, age, problem_description) VALUES (?, ?, ?, ?)',
-      [req.user.id, patientName, age, problemDescription]
+      [req.user.id, patient_name, age, problem_description]
     );
 
-    res.json({
-      success: true,
+    res.status(201).json({
       id: result.insertId,
-      message: 'Emergency request submitted successfully'
+      message: 'Emergency request created successfully'
     });
   } catch (error) {
-    console.error('Error in request submission:', error);
-    res.status(500).json({ error: 'Failed to save emergency request' });
+    console.error('Error creating request:', error);
+    res.status(500).json({ error: 'Failed to create request' });
   }
 });
 
@@ -222,27 +221,32 @@ router.get('/emergency-requests', authenticateToken, isAdmin, async (req, res) =
 });
 
 // PUT: Update request status (admin only)
-router.put('/emergency-request/:id', authenticateToken, isAdmin, async (req, res) => {
+router.put('/emergency-requests/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const { status } = req.body;
-    if (!['granted', 'dismissed'].includes(status)) {
+    const { status, code } = req.body;
+    const requestId = req.params.id;
+
+    // Validate status
+    if (!['pending', 'granted', 'dismissed'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
+    // If status is granted, validate code
+    if (status === 'granted' && (!code || code.length !== 6)) {
+      return res.status(400).json({ error: 'Valid 6-digit code required for granting request' });
+    }
+
+    // Update request
     const [result] = await pool.query(
       'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
-      [
-        status,
-        status === 'granted' ? Math.floor(100000 + Math.random() * 900000).toString() : null,
-        status === 'granted' ? new Date() : null,
-        req.params.id
-      ]
+      [status, code, status === 'granted' ? new Date() : null, requestId]
     );
 
-    res.json({
-      success: true,
-      message: `Request ${status} successfully`
-    });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    res.json({ message: 'Request updated successfully' });
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ error: 'Failed to update request' });
@@ -250,7 +254,7 @@ router.put('/emergency-request/:id', authenticateToken, isAdmin, async (req, res
 });
 
 // GET: Get single request by ID
-router.get('/emergency-request/:id', authenticateToken, async (req, res) => {
+router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -343,62 +347,10 @@ For any other questions, provide a short, direct answer consistent with the pers
   }
 });
 
-// Get a specific emergency request
-router.get('/emergency-requests/:id', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching request:', error);
-    res.status(500).json({ error: 'Failed to fetch request' });
-  }
-});
-
-// Create a new emergency request
-router.post('/emergency-requests', async (req, res) => {
-  try {
-    const { patient_name, problem_description, age } = req.body;
-    
-    const [result] = await pool.query(
-      'INSERT INTO emergency_requests (patient_name, problem_description, age, status) VALUES (?, ?, ?, ?)',
-      [patient_name, problem_description, age, 'pending']
-    );
-
-    const [newRequest] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json(newRequest[0]);
-  } catch (error) {
-    console.error('Error creating request:', error);
-    res.status(500).json({ error: 'Failed to create request' });
-  }
-});
-
-// Initialize database and start server
-initializeDatabase().then(() => {
-  router.listen(process.env.PORT || 5000, () => {
-    console.log(`Server running on port ${process.env.PORT || 5000}`);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
+// Initialize database
+initializeDatabase().catch(error => {
+  console.error('Failed to initialize database:', error);
   process.exit(1);
-});
-
-// Global unhandled promise rejection handler
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Optionally, log to a file or a monitoring service
-  // process.exit(1); // Exit with a failure code to allow process managers to restart
 });
 
 export default router; 
