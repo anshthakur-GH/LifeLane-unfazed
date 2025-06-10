@@ -3,7 +3,10 @@ services:
     name: lifelane-emergency-interface
     env: node
     plan: free
-    buildCommand: npm install --production=false;npx vite build
+    buildCommand: |
+      npm install --production=false
+      npm install -g tailwindcss postcss autoprefixer
+      npx vite build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
