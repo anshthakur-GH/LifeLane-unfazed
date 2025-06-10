@@ -32,6 +32,9 @@ const router = express.Router();
 const upload = multer();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Add logging for JWT_SECRET at startup
+console.log('JWT_SECRET loaded:', JWT_SECRET ? 'Yes' : 'No');
+
 // Initialize OpenAI only if API key is available
 let openai = null;
 if (process.env.OPENROUTER_API_KEY) {
@@ -52,6 +55,13 @@ const authenticateToken = (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // Log JWT_SECRET inside authenticateToken
+  console.log('JWT_SECRET in authenticateToken:', JWT_SECRET ? 'Yes' : 'No');
+  if (!JWT_SECRET) {
+    console.error('JWT_SECRET is missing within authenticateToken. Check environment variables.');
+    return res.status(500).json({ error: 'Server configuration error' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
