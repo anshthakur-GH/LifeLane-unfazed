@@ -7,6 +7,7 @@ import { pool, initializeDatabase } from './server/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import apiRouter from './server/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -28,8 +29,8 @@ initializeDatabase().catch(console.error);
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Import all routes from server/index.js
-import './server/index.js';
+// Use API routes
+app.use('/api', apiRouter);
 
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {

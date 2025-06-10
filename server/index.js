@@ -28,8 +28,7 @@ console.log('================================');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const port = process.env.PORT || 5000;
+const router = express.Router();
 const upload = multer();
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -38,21 +37,13 @@ let openai = null;
 if (process.env.OPENROUTER_API_KEY) {
   const OpenAI = (await import('openai')).default;
   openai = new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY, // Use OpenRouter API key
-    baseURL: "https://openrouter.ai/api/v1/" // OpenRouter API base URL
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: "https://openrouter.ai/api/v1/"
   });
   console.log('OpenRouter chatbot initialized successfully', openai !== null);
 } else {
   console.log('OpenRouter chatbot not initialized - API key not provided or environment variable name is incorrect');
 }
-
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -81,7 +72,7 @@ const isAdmin = (req, res, next) => {
 };
 
 // Test database connection
-app.get('/api/test-db', async (req, res) => {
+router.get('/test-db', async (req, res) => {
   try {
     const [result] = await pool.query('SELECT 1 as test');
     res.json({
@@ -100,7 +91,7 @@ app.get('/api/test-db', async (req, res) => {
 });
 
 // Register new user
-app.post('/api/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -137,7 +128,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // Login user
-app.post('/api/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -177,7 +168,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // POST: Save new emergency request
-app.post('/api/emergency-request', authenticateToken, async (req, res) => {
+router.post('/emergency-request', authenticateToken, async (req, res) => {
   try {
     const { patientName, age, problemDescription } = req.body;
     
@@ -204,7 +195,7 @@ app.post('/api/emergency-request', authenticateToken, async (req, res) => {
 });
 
 // GET: Get user's requests
-app.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
+router.get('/emergency-requests/user', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -218,7 +209,7 @@ app.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
 });
 
 // GET: Get all requests (admin only)
-app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
+router.get('/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
@@ -231,7 +222,7 @@ app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) 
 });
 
 // PUT: Update request status (admin only)
-app.put('/api/emergency-request/:id', authenticateToken, isAdmin, async (req, res) => {
+router.put('/emergency-request/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -248,16 +239,10 @@ app.put('/api/emergency-request/:id', authenticateToken, isAdmin, async (req, re
       ]
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    const [updatedRequest] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    res.json(updatedRequest[0]);
+    res.json({
+      success: true,
+      message: `Request ${status} successfully`
+    });
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ error: 'Failed to update request' });
@@ -265,7 +250,7 @@ app.put('/api/emergency-request/:id', authenticateToken, isAdmin, async (req, re
 });
 
 // GET: Get single request by ID
-app.get('/api/emergency-request/:id', authenticateToken, async (req, res) => {
+router.get('/emergency-request/:id', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -292,7 +277,7 @@ app.get('/api/emergency-request/:id', authenticateToken, async (req, res) => {
 });
 
 // Chatbot endpoint
-app.post('/api/chatbot', async (req, res) => {
+router.post('/chatbot', async (req, res) => {
   console.log('Chatbot endpoint hit.');
   if (!openai) {
     console.error('Chatbot service not available: OpenAI instance is null.');
@@ -359,7 +344,7 @@ For any other questions, provide a short, direct answer consistent with the pers
 });
 
 // Get a specific emergency request
-app.get('/api/emergency-requests/:id', async (req, res) => {
+router.get('/emergency-requests/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -378,7 +363,7 @@ app.get('/api/emergency-requests/:id', async (req, res) => {
 });
 
 // Create a new emergency request
-app.post('/api/emergency-requests', async (req, res) => {
+router.post('/emergency-requests', async (req, res) => {
   try {
     const { patient_name, problem_description, age } = req.body;
     
@@ -401,8 +386,8 @@ app.post('/api/emergency-requests', async (req, res) => {
 
 // Initialize database and start server
 initializeDatabase().then(() => {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  router.listen(process.env.PORT || 5000, () => {
+    console.log(`Server running on port ${process.env.PORT || 5000}`);
   });
 }).catch(error => {
   console.error('Failed to start server:', error);
@@ -414,4 +399,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Optionally, log to a file or a monitoring service
   // process.exit(1); // Exit with a failure code to allow process managers to restart
-}); 
+});
+
+export default router; 
