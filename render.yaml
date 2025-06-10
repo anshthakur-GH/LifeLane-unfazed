@@ -2,14 +2,17 @@ services:
   - type: web
     name: lifelane-emergency-interface
     env: node
-    rootDir: .
-    buildCommand: npm install && npm run build
+    plan: free
+    buildCommand: |
+      cd /opt/render/project/src
+      npm install
+      npm run build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: 5000
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -21,4 +24,6 @@ services:
       - key: DB_NAME
         sync: false
       - key: JWT_SECRET
+        sync: false
+      - key: OPENROUTER_API_KEY
         sync: false 

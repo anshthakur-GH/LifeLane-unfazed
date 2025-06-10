@@ -9,7 +9,18 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:5000',
+      '/api': {
+        target: process.env.NODE_ENV === 'production' 
+          ? 'http://localhost:5000'
+          : 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: true,
   },
 });
