@@ -11,7 +11,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: process.env.NODE_ENV === 'production' 
-          ? 'http://localhost:5000'
+          ? 'https://lifelane-emergency-interface.onrender.com'
           : 'http://localhost:5000',
         changeOrigin: true,
         secure: false,

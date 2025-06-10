@@ -71,7 +71,7 @@ export const EmergencyRequestForm: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/emergency-requests', {
+      const res = await fetch('/api/emergency-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

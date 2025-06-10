@@ -34,7 +34,7 @@ const RequestStatus: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`);
+      const res = await fetch(`/api/emergency-requests/${id}`);
       if (!res.ok) {
         throw new Error('Failed to fetch request');
       }

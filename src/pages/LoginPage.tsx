@@ -32,7 +32,7 @@ export const LoginPage: React.FC = () => {
           return;
         }
 
-        const res = await fetch('http://localhost:5000/api/register', {
+        const res = await fetch('/api/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('user_name', formData.fullName);
         navigate('/dashboard');
       } else if (activeTab === 'login') {
-        const res = await fetch('http://localhost:5000/api/login', {
+        const res = await fetch('/api/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('user_name', data.name);
         navigate('/dashboard');
       } else if (activeTab === 'admin') {
-        const res = await fetch('http://localhost:5000/api/login', {
+        const res = await fetch('/api/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

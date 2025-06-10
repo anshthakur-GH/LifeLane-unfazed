@@ -16,7 +16,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/emergency-requests', {
+      const res = await fetch('/api/emergency-requests', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,7 +58,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`, {
+      const res = await fetch(`/api/emergency-requests/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`, {
+      const res = await fetch(`/api/emergency-requests/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
