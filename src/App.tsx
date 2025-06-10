@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -40,16 +40,22 @@ function App() {
                 <EmergencyRequestForm />
               </ProtectedRoute>
             } />
-            <Route path="/status/:id" element={
-              <ProtectedRoute>
-                <RequestStatus />
-              </ProtectedRoute>
-            } />
+            <Route 
+              path="/status/:id" 
+              element={
+                <ProtectedRoute>
+                  <RequestStatus />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/adminpanel" element={
               <ProtectedRoute requireAdmin>
                 <AdminPanel />
               </ProtectedRoute>
             } />
+
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
         <ChatBot />
