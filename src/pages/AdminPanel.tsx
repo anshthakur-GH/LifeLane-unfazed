@@ -64,7 +64,10 @@ export const AdminPanel: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: 'granted' }),
+        body: JSON.stringify({ 
+          status: 'granted', 
+          code: Math.floor(100000 + Math.random() * 900000).toString() // Generate a random 6-digit code
+        }),
       });
       if (!res.ok) throw new Error('Failed to grant request');
       await fetchRequests(); // Refresh the list
