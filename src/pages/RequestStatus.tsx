@@ -15,7 +15,8 @@ interface Request {
 }
 
 const RequestStatus: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params.id;
   const navigate = useNavigate();
   const [request, setRequest] = useState<Request | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +24,12 @@ const RequestStatus: React.FC = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   const fetchRequest = async () => {
+    if (!id) {
+      setError('Invalid request ID');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`);
       if (!res.ok) {

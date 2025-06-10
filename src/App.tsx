@@ -22,8 +22,14 @@ function App() {
         <Toaster position="top-center" />
         <div className="flex-grow">
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+
+            {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -44,9 +50,6 @@ function App() {
                 <AdminPanel />
               </ProtectedRoute>
             } />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
           </Routes>
         </div>
         <ChatBot />
