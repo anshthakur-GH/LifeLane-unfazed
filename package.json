@@ -8,8 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.js",
-    "postinstall": "npm run build"
+    "start": "node server.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
