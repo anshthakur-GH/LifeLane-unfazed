@@ -32,15 +32,16 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // Use API routes
 app.use('/api', apiRouter);
 
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
+});
+
+// Handle React routing, return all requests to React app
+// This should be the last route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(port, () => {

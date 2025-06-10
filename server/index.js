@@ -207,6 +207,33 @@ router.get('/emergency-requests/user', authenticateToken, async (req, res) => {
   }
 });
 
+// GET: Get single request by ID
+router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
+  try {
+    const [requests] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (requests.length === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    // Check if user is admin or the request owner
+    const isAdmin = req.user.is_admin;
+    const isOwner = requests[0].user_id === req.user.id;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json(requests[0]);
+  } catch (error) {
+    console.error('Error fetching request:', error);
+    res.status(500).json({ error: 'Failed to fetch request' });
+  }
+});
+
 // GET: Get all requests (admin only)
 router.get('/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
   try {
@@ -250,33 +277,6 @@ router.put('/emergency-requests/:id', authenticateToken, isAdmin, async (req, re
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ error: 'Failed to update request' });
-  }
-});
-
-// GET: Get single request by ID
-router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
-  try {
-    const [requests] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (requests.length === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    // Check if user is admin or the request owner
-    const isAdmin = req.user.is_admin;
-    const isOwner = requests[0].user_id === req.user.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    res.json(requests[0]);
-  } catch (error) {
-    console.error('Error fetching request:', error);
-    res.status(500).json({ error: 'Failed to fetch request' });
   }
 });
 
