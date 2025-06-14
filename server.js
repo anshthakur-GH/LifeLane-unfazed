@@ -284,12 +284,13 @@ app.get('/api/emergency-request/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Catch-all route to handle client-side routing
-app.get('/*', (req, res) => {
+// Handle client-side routing
+app.use((req, res, next) => {
   // Skip API routes
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
+    return next();
   }
+  // For all other routes, serve the React app
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
