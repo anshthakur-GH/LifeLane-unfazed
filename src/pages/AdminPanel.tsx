@@ -142,7 +142,7 @@ export const AdminPanel: React.FC = () => {
                     <div className="text-sm text-gray-500">
                       <span>Age: {request.age}</span>
                       <span className="mx-2">•</span>
-                      <span>{new Date(request.date).toLocaleString()}</span>
+                      <span>{new Date(request.created_at).toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="mt-4 md:mt-0 md:ml-4">
@@ -183,7 +183,7 @@ export const AdminPanel: React.FC = () => {
                 <div>
                   <h3 className="font-semibold text-gray-700">Request Details</h3>
                   <p className="text-gray-600">Status: {selectedRequest.status}</p>
-                  <p className="text-gray-600">Date: {new Date(selectedRequest.date).toLocaleString()}</p>
+                  <p className="text-gray-600">Date: {new Date(selectedRequest.created_at).toLocaleString()}</p>
                 </div>
                 {selectedRequest.status === 'granted' && selectedRequest.code && (
                   <div className="bg-green-50 p-4 rounded-lg">
