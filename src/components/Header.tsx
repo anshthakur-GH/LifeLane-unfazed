@@ -28,12 +28,12 @@ export const Header: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white shadow-lg z-50 h-24">
+    <header className="fixed top-0 left-0 right-0 bg-white shadow-lg z-50 h-16 md:h-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-        <div className="flex justify-between items-center w-full py-4">
+        <div className="flex justify-between items-center w-full py-2 md:py-4">
           {/* Logo on the left */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src={logo} alt="Logo" className="h-16 w-auto" />
+            <img src={logo} alt="Logo" className="h-10 md:h-16 w-auto" />
           </Link>
 
           {/* Centered Navigation */}
@@ -41,19 +41,19 @@ export const Header: React.FC = () => {
             <div className="flex space-x-8 border border-header/50 rounded-full px-6 py-2 bg-transparent">
               <Link
                 to="/"
-                className={`${isActive('/') ? 'text-primary' : 'text-header hover:text-primary'} text-xl font-semibold px-6 py-3 rounded transition-colors`}
+                className={`${isActive('/') ? 'text-primary' : 'text-header hover:text-primary'} text-base md:text-xl font-semibold px-4 md:px-6 py-2 md:py-3 rounded transition-colors`}
               >
                 Home
               </Link>
               <Link
                 to="/dashboard"
-                className={`${isActive('/dashboard') ? 'text-primary' : 'text-header hover:text-primary'} text-xl font-semibold px-6 py-3 rounded transition-colors`}
+                className={`${isActive('/dashboard') ? 'text-primary' : 'text-header hover:text-primary'} text-base md:text-xl font-semibold px-4 md:px-6 py-2 md:py-3 rounded transition-colors`}
               >
                 Dashboard
               </Link>
               <Link
                 to="/contact"
-                className={`${isActive('/contact') ? 'text-primary' : 'text-header hover:text-primary'} text-xl font-semibold px-6 py-3 rounded transition-colors`}
+                className={`${isActive('/contact') ? 'text-primary' : 'text-header hover:text-primary'} text-base md:text-xl font-semibold px-4 md:px-6 py-2 md:py-3 rounded transition-colors`}
               >
                 Contact
               </Link>
@@ -61,7 +61,7 @@ export const Header: React.FC = () => {
           </nav>
 
           {/* User Profile or Login on the right */}
-          <div className="hidden md:flex items-center ml-auto">
+          <div className="hidden md:block">
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-full">
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
             ) : (
               <Link
                 to="/login"
-                className="bg-gradient-to-r from-primary to-emergency text-white px-8 py-3 rounded-full font-semibold shadow-lg transition-all hover:from-primary hover:to-emergency"
+                className="bg-gradient-to-r from-primary to-emergency text-white px-6 md:px-8 py-2 md:py-3 rounded-full text-sm md:text-base font-semibold shadow-lg transition-all hover:from-primary hover:to-emergency"
               >
                 Login
               </Link>
@@ -101,25 +101,25 @@ export const Header: React.FC = () => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
-            <div className="flex flex-col space-y-4">
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-t shadow-lg">
+            <div className="flex flex-col space-y-4 p-4">
               <Link
                 to="/"
-                className={`${isActive('/') ? 'text-primary' : 'text-header'} font-medium`}
+                className={`${isActive('/') ? 'text-primary' : 'text-header'} text-base font-medium py-2`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 to="/dashboard"
-                className={`${isActive('/dashboard') ? 'text-primary' : 'text-header'} font-medium`}
+                className={`${isActive('/dashboard') ? 'text-primary' : 'text-header'} text-base font-medium py-2`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
               </Link>
               <Link
                 to="/contact"
-                className={`${isActive('/contact') ? 'text-primary' : 'text-header'} font-medium`}
+                className={`${isActive('/contact') ? 'text-primary' : 'text-header'} text-base font-medium py-2`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Contact
@@ -135,7 +135,7 @@ export const Header: React.FC = () => {
                       handleLogout();
                       setIsMenuOpen(false);
                     }}
-                    className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors"
+                    className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors py-2"
                   >
                     <LogOut className="w-5 h-5" />
                     <span>Logout</span>
@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="bg-gradient-to-r from-primary to-emergency text-white px-8 py-3 rounded-full font-semibold shadow-lg transition-all hover:from-primary hover:to-emergency w-fit"
+                  className="bg-gradient-to-r from-primary to-emergency text-white px-6 py-3 rounded-full text-base font-semibold shadow-lg transition-all hover:from-primary hover:to-emergency w-fit"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login

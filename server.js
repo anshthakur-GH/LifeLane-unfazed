@@ -7,7 +7,6 @@ import { pool, initializeDatabase } from './server/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import apiRouter from './server/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,19 +28,18 @@ initializeDatabase().catch(console.error);
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Use API routes
-app.use('/api', apiRouter);
+// Import all routes from server/index.js
+import './server/index.js';
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
-});
-
-// Handle React routing, return all requests to React app
-// This should be the last route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(port, () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import { Copy } from 'lucide-react';
 
@@ -15,36 +15,16 @@ interface Request {
 }
 
 const RequestStatus: React.FC = () => {
-  const location = useLocation();
-  const params = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [request, setRequest] = useState<Request | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
-  // Extract ID from URL path
-  const id = location.pathname.split('/').pop();
-
   const fetchRequest = async () => {
-    if (!id || isNaN(Number(id))) {
-      setError('Invalid request ID');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const res = await fetch(`/api/emergency-requests/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`);
       if (!res.ok) {
         throw new Error('Failed to fetch request');
       }
@@ -70,8 +50,8 @@ const RequestStatus: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!id || isNaN(Number(id))) {
-      setError('Invalid request ID');
+    if (!id) {
+      setError('No request ID provided');
       setLoading(false);
       return;
     }

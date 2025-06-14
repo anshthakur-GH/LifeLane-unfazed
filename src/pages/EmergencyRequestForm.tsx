@@ -71,16 +71,16 @@ export const EmergencyRequestForm: React.FC = () => {
         return;
       }
 
-      const res = await fetch('/api/emergency-requests', {
+      const res = await fetch('http://localhost:5000/api/emergency-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          patient_name: formData.patientName,
+          patientName: formData.patientName,
           age: formData.age,
-          problem_description: formData.problemDescription
+          problemDescription: formData.problemDescription
         }),
       });
 

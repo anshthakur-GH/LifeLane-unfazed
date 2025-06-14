@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -11,6 +11,7 @@ import Contact from './pages/Contact';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import { ChatBot } from './components/ChatBot';
+import { Status } from './pages/Status';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 
@@ -22,14 +23,8 @@ function App() {
         <Toaster position="top-center" />
         <div className="flex-grow">
           <Routes>
-            {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-
-            {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -40,22 +35,19 @@ function App() {
                 <EmergencyRequestForm />
               </ProtectedRoute>
             } />
-            <Route 
-              path="/status/:id" 
-              element={
-                <ProtectedRoute>
-                  <RequestStatus />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/status/:id" element={
+              <ProtectedRoute>
+                <RequestStatus />
+              </ProtectedRoute>
+            } />
             <Route path="/adminpanel" element={
               <ProtectedRoute requireAdmin>
                 <AdminPanel />
               </ProtectedRoute>
             } />
-
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
           </Routes>
         </div>
         <ChatBot />

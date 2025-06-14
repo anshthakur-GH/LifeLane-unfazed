@@ -7,7 +7,7 @@ export const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([
     {
       role: 'assistant',
-      content: "Hi, I'm LifeBot! Here to help you use LifeLane during emergencies. How can I assist you today?"
+      content: "Hi, I'm LifeLane AI Assistant! Here to help you use LifeLane during emergencies. How can I assist you today?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -32,7 +32,7 @@ export const ChatBot: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/chatbot', {
+      const res = await fetch('http://localhost:5000/api/chatbot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export const ChatBot: React.FC = () => {
           <div className="p-4 border-b flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <img src={botLogo} alt="Bot" className="w-8 h-8" />
-              <h3 className="font-semibold text-gray-800">LifeBot</h3>
+              <h3 className="font-semibold text-gray-800">LifeLane AI Assistant</h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}

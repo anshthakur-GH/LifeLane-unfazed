@@ -28,25 +28,31 @@ console.log('================================');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const router = express.Router();
+const app = express();
+const port = process.env.PORT || 5000;
 const upload = multer();
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// Add logging for JWT_SECRET at startup
-console.log('JWT_SECRET loaded:', JWT_SECRET ? 'Yes' : 'No');
 
 // Initialize OpenAI only if API key is available
 let openai = null;
 if (process.env.OPENROUTER_API_KEY) {
   const OpenAI = (await import('openai')).default;
   openai = new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
-    baseURL: "https://openrouter.ai/api/v1/"
+    apiKey: process.env.OPENROUTER_API_KEY, // Use OpenRouter API key
+    baseURL: "https://openrouter.ai/api/v1/" // OpenRouter API base URL
   });
   console.log('OpenRouter chatbot initialized successfully', openai !== null);
 } else {
   console.log('OpenRouter chatbot not initialized - API key not provided or environment variable name is incorrect');
 }
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -55,13 +61,6 @@ const authenticateToken = (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  // Log JWT_SECRET inside authenticateToken
-  console.log('JWT_SECRET in authenticateToken:', JWT_SECRET ? 'Yes' : 'No');
-  if (!JWT_SECRET) {
-    console.error('JWT_SECRET is missing within authenticateToken. Check environment variables.');
-    return res.status(500).json({ error: 'Server configuration error' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -82,7 +81,7 @@ const isAdmin = (req, res, next) => {
 };
 
 // Test database connection
-router.get('/test-db', async (req, res) => {
+app.get('/api/test-db', async (req, res) => {
   try {
     const [result] = await pool.query('SELECT 1 as test');
     res.json({
@@ -101,7 +100,7 @@ router.get('/test-db', async (req, res) => {
 });
 
 // Register new user
-router.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -138,7 +137,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -178,33 +177,34 @@ router.post('/login', async (req, res) => {
 });
 
 // POST: Save new emergency request
-router.post('/emergency-requests', authenticateToken, async (req, res) => {
+app.post('/api/emergency-request', authenticateToken, async (req, res) => {
   try {
-    const { patient_name, age, problem_description } = req.body;
+    const { patientName, age, problemDescription } = req.body;
     
-    // Validate required fields
-    if (!patient_name || !age || !problem_description) {
-      return res.status(400).json({ error: 'All fields are required' });
+    if (!patientName || !age || !problemDescription) {
+      return res.status(400).json({
+        error: 'Missing required fields'
+      });
     }
 
-    // Insert new request
     const [result] = await pool.query(
       'INSERT INTO emergency_requests (user_id, patient_name, age, problem_description) VALUES (?, ?, ?, ?)',
-      [req.user.id, patient_name, age, problem_description]
+      [req.user.id, patientName, age, problemDescription]
     );
 
-    res.status(201).json({
+    res.json({
+      success: true,
       id: result.insertId,
-      message: 'Emergency request created successfully'
+      message: 'Emergency request submitted successfully'
     });
   } catch (error) {
-    console.error('Error creating request:', error);
-    res.status(500).json({ error: 'Failed to create request' });
+    console.error('Error in request submission:', error);
+    res.status(500).json({ error: 'Failed to save emergency request' });
   }
 });
 
 // GET: Get user's requests
-router.get('/emergency-requests/user', authenticateToken, async (req, res) => {
+app.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -217,8 +217,76 @@ router.get('/emergency-requests/user', authenticateToken, async (req, res) => {
   }
 });
 
+// GET: Get all requests (admin only)
+app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [requests] = await pool.query(
+      'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
+    );
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching requests:', error);
+    res.status(500).json({ error: 'Failed to fetch requests' });
+  }
+});
+
+// PUT: Update request status (admin only)
+app.put('/api/emergency-request/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['granted', 'dismissed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    if (status === 'granted') {
+      // Get an unused activation code
+      const [unusedCodes] = await pool.query(
+        'SELECT * FROM activation_codes WHERE used = FALSE LIMIT 1'
+      );
+
+      if (unusedCodes.length === 0) {
+        return res.status(400).json({ error: 'No activation codes available' });
+      }
+
+      const activationCode = unusedCodes[0];
+
+      // Update the emergency request with the activation code
+      await pool.query(
+        'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
+        [status, activationCode.code, new Date(), req.params.id]
+      );
+
+      // Mark the activation code as used
+      await pool.query(
+        'UPDATE activation_codes SET used = TRUE, assigned_to = ?, assigned_at = ? WHERE id = ?',
+        [req.params.id, new Date(), activationCode.id]
+      );
+
+      res.json({
+        success: true,
+        message: 'Request granted with activation code',
+        code: activationCode.code
+      });
+    } else {
+      // For dismissed status, just update the status
+      await pool.query(
+        'UPDATE emergency_requests SET status = ? WHERE id = ?',
+        [status, req.params.id]
+      );
+
+      res.json({
+        success: true,
+        message: 'Request dismissed'
+      });
+    }
+  } catch (error) {
+    console.error('Error updating request:', error);
+    res.status(500).json({ error: 'Failed to update request' });
+  }
+});
+
 // GET: Get single request by ID
-router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
+app.get('/api/emergency-request/:id', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -239,59 +307,13 @@ router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
 
     res.json(requests[0]);
   } catch (error) {
-    console.error('Error fetching request (ID route):', error);
+    console.error('Error fetching request:', error);
     res.status(500).json({ error: 'Failed to fetch request' });
   }
 });
 
-// GET: Get all requests (admin only)
-router.get('/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const [requests] = await pool.query(
-      'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
-    );
-    res.json(requests);
-  } catch (error) {
-    console.error('Error fetching requests:', error);
-    res.status(500).json({ error: 'Failed to fetch requests' });
-  }
-});
-
-// PUT: Update request status (admin only)
-router.put('/emergency-requests/:id', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const { status, code } = req.body;
-    const requestId = req.params.id;
-
-    // Validate status
-    if (!['pending', 'granted', 'dismissed'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
-
-    // If status is granted, validate code
-    if (status === 'granted' && (!code || code.length !== 6)) {
-      return res.status(400).json({ error: 'Valid 6-digit code required for granting request' });
-    }
-
-    // Update request
-    const [result] = await pool.query(
-      'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
-      [status, code, status === 'granted' ? new Date() : null, requestId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    res.json({ message: 'Request updated successfully' });
-  } catch (error) {
-    console.error('Error updating request (PUT route):', error);
-    res.status(500).json({ error: 'Failed to update request' });
-  }
-});
-
 // Chatbot endpoint
-router.post('/chatbot', async (req, res) => {
+app.post('/api/chatbot', async (req, res) => {
   console.log('Chatbot endpoint hit.');
   if (!openai) {
     console.error('Chatbot service not available: OpenAI instance is null.');
@@ -357,10 +379,60 @@ For any other questions, provide a short, direct answer consistent with the pers
   }
 });
 
-// Initialize database
-initializeDatabase().catch(error => {
-  console.error('Failed to initialize database:', error);
+// Get a specific emergency request
+app.get('/api/emergency-requests/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching request:', error);
+    res.status(500).json({ error: 'Failed to fetch request' });
+  }
+});
+
+// Create a new emergency request
+app.post('/api/emergency-requests', async (req, res) => {
+  try {
+    const { patient_name, problem_description, age } = req.body;
+    
+    const [result] = await pool.query(
+      'INSERT INTO emergency_requests (patient_name, problem_description, age, status) VALUES (?, ?, ?, ?)',
+      [patient_name, problem_description, age, 'pending']
+    );
+
+    const [newRequest] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json(newRequest[0]);
+  } catch (error) {
+    console.error('Error creating request:', error);
+    res.status(500).json({ error: 'Failed to create request' });
+  }
+});
+
+// Initialize database and start server
+initializeDatabase().then(() => {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}).catch(error => {
+  console.error('Failed to start server:', error);
   process.exit(1);
 });
 
-export default router; 
+// Global unhandled promise rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Optionally, log to a file or a monitoring service
+  // process.exit(1); // Exit with a failure code to allow process managers to restart
+}); 

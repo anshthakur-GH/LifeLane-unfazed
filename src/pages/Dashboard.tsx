@@ -15,7 +15,7 @@ export const Dashboard: React.FC = () => {
         return;
       }
 
-      const res = await fetch('/api/emergency-requests/user', {
+      const res = await fetch('http://localhost:5000/api/emergency-requests/user', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

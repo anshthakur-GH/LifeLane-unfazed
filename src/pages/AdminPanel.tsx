@@ -16,7 +16,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch('/api/emergency-requests', {
+      const res = await fetch('http://localhost:5000/api/emergency-requests', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,16 +58,13 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`/api/emergency-requests/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          status: 'granted', 
-          code: Math.floor(100000 + Math.random() * 900000).toString() // Generate a random 6-digit code
-        }),
+        body: JSON.stringify({ status: 'granted' }),
       });
       if (!res.ok) throw new Error('Failed to grant request');
       await fetchRequests(); // Refresh the list
@@ -88,7 +85,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`/api/emergency-requests/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
