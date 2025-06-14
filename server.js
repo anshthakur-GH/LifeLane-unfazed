@@ -26,11 +26,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Catch-all route to handle client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -287,6 +282,15 @@ app.get('/api/emergency-request/:id', authenticateToken, async (req, res) => {
     console.error('Error fetching request:', error);
     res.status(500).json({ error: 'Failed to fetch request' });
   }
+});
+
+// Catch-all route to handle client-side routing
+app.get('/*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Initialize database and start server
