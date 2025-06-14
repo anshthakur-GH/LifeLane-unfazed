@@ -379,33 +379,14 @@ For any other questions, provide a short, direct answer consistent with the pers
   }
 });
 
-// Get a specific emergency request
-app.get('/api/emergency-requests/:id', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching request:', error);
-    res.status(500).json({ error: 'Failed to fetch request' });
-  }
-});
-
 // Create a new emergency request
-app.post('/api/emergency-requests', async (req, res) => {
+app.post('/api/emergency-requests', authenticateToken, async (req, res) => {
   try {
     const { patient_name, problem_description, age } = req.body;
     
     const [result] = await pool.query(
-      'INSERT INTO emergency_requests (patient_name, problem_description, age, status) VALUES (?, ?, ?, ?)',
-      [patient_name, problem_description, age, 'pending']
+      'INSERT INTO emergency_requests (user_id, patient_name, problem_description, age, status) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, patient_name, problem_description, age, 'pending']
     );
 
     const [newRequest] = await pool.query(
