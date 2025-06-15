@@ -36,7 +36,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Initialize OpenAI only if API key is available
 let openai = null;
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 if (OPENROUTER_API_KEY) {
   const OpenAI = (await import('openai')).default;
@@ -44,14 +44,14 @@ if (OPENROUTER_API_KEY) {
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: OPENROUTER_API_KEY,
     defaultHeaders: {
-      'HTTP-Referer': 'https://lifelane-unfazed.onrender.com',
+      'HTTP-Referer': process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
       'X-Title': 'LifeLane',
       'Content-Type': 'application/json'
     }
   });
-  console.log('OpenRouter chatbot initialized successfully', openai !== null);
+  console.log('OpenRouter chatbot initialized successfully');
 } else {
-  console.log('OpenRouter chatbot not initialized - API key not provided');
+  console.error('OpenRouter chatbot not initialized - API key not provided');
 }
 
 // Middleware
@@ -289,7 +289,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
   
   if (!openai) {
     console.error('Chatbot not initialized - OpenAI instance is null');
-    return res.status(500).json({ error: 'Chatbot not initialized' });
+    return res.status(500).json({ 
+      error: 'Chatbot service unavailable',
+      details: 'The chatbot service is not properly configured. Please contact support.'
+    });
   }
 
   if (!userMessage) {
@@ -321,7 +324,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
     if (!completion.choices || completion.choices.length === 0) {
       console.error('No response received from OpenRouter API');
-      return res.status(500).json({ error: 'No response from chatbot' });
+      return res.status(500).json({ 
+        error: 'No response from chatbot',
+        details: 'The AI service did not return a valid response'
+      });
     }
 
     console.log('Successfully received response from OpenRouter API');
@@ -342,13 +348,20 @@ router.post('/chat', authenticateToken, async (req, res) => {
     if (error.status === 401) {
       return res.status(500).json({ 
         error: 'Chatbot authentication failed',
-        details: 'Unable to authenticate with the AI service'
+        details: 'Unable to authenticate with the AI service. Please contact support.'
+      });
+    }
+
+    if (error.status === 429) {
+      return res.status(500).json({ 
+        error: 'Rate limit exceeded',
+        details: 'The chatbot service is currently busy. Please try again in a few moments.'
       });
     }
 
     res.status(500).json({ 
       error: 'Failed to get response from chatbot',
-      details: error.message
+      details: error.message || 'An unexpected error occurred'
     });
   }
 });
