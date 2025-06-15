@@ -24,7 +24,17 @@ const RequestStatus: React.FC = () => {
 
   const fetchRequest = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!res.ok) {
         throw new Error('Failed to fetch request');
       }

@@ -1,10 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Zap, Phone, Mail, MapPin } from 'lucide-react';
 import logo from '../assets/logo.png';
 import footerLogo from '../assets/footer-logo.png';
 
 export const LandingPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="pt-16">
       {/* Hero Section */}
@@ -74,12 +85,12 @@ export const LandingPage: React.FC = () => {
           <p className="text-base sm:text-lg md:text-xl text-white opacity-90 mb-6 md:mb-8">
             Join countless families turning their vehicles into emergency responders with LifeLane — trusted, verified, and built for urgent care.
           </p>
-          <Link
-            to="/login"
+          <button
+            onClick={handleGetStarted}
             className="inline-flex items-center bg-white text-header px-6 md:px-8 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
           >
             Get Started Today
-          </Link>
+          </button>
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -11,19 +11,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
   const token = localStorage.getItem('token');
   const isAdmin = localStorage.getItem('is_admin') === 'true';
 
-  useEffect(() => {
-    if (!token) {
-      // Store the attempted URL to redirect back after login
-      localStorage.setItem('redirectUrl', location.pathname);
-    }
-  }, [token, location]);
-
   if (!token) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

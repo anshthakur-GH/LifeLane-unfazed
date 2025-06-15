@@ -140,10 +140,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-gray-600 mb-1">{req.problem_description}</div>
                     <div className="text-gray-500 text-sm mb-1">Age: {req.age}</div>
-                    <div className="text-gray-400 text-xs">
-                      {new Date(req.created_at).toLocaleString()}
-                      {req.granted_at && ` • Granted: ${new Date(req.granted_at).toLocaleString()}`}
-                    </div>
+                    <div className="text-gray-400 text-xs">{new Date(req.date).toLocaleString()}</div>
                   </div>
                   <div className="mt-4 md:mt-0">
                     <Link

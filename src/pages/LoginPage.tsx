@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'admin'>('login');
   const [formData, setFormData] = useState({
     email: '',
@@ -14,14 +13,6 @@ export const LoginPage: React.FC = () => {
     fullName: '',
   });
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    // Check if we have a redirect URL stored
-    const redirectUrl = localStorage.getItem('redirectUrl');
-    if (redirectUrl) {
-      localStorage.removeItem('redirectUrl');
-    }
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -61,11 +52,7 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('is_admin', 'false');
         localStorage.setItem('user_name', formData.fullName);
-        
-        // Get redirect URL or default to dashboard
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        localStorage.removeItem('redirectUrl');
-        navigate(redirectUrl);
+        navigate('/dashboard');
       } else if (activeTab === 'login') {
         const res = await fetch('http://localhost:5000/api/login', {
           method: 'POST',
@@ -86,11 +73,11 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('is_admin', data.is_admin ? 'true' : 'false');
         localStorage.setItem('user_name', data.name);
-        
-        // Get redirect URL or default to dashboard
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        localStorage.removeItem('redirectUrl');
-        navigate(redirectUrl);
+        if (data.is_admin) {
+          navigate('/adminpanel');
+        } else {
+          navigate('/dashboard');
+        }
       } else if (activeTab === 'admin') {
         const res = await fetch('http://localhost:5000/api/login', {
           method: 'POST',
@@ -115,11 +102,7 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('is_admin', 'true');
         localStorage.setItem('user_name', data.name);
-        
-        // Get redirect URL or default to admin panel
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/adminpanel';
-        localStorage.removeItem('redirectUrl');
-        navigate(redirectUrl);
+        navigate('/adminpanel');
       }
     } catch (err: any) {
       setError(err.message);

@@ -8,26 +8,26 @@ export const Status: React.FC = () => {
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isCodeExpired, setIsCodeExpired] = useState(false);
 
   useEffect(() => {
     const fetchRequest = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/emergency-request/${id}`);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (!res.ok) {
           throw new Error('Request not found');
         }
         const data = await res.json();
         setRequest(data);
-
-        // Check if code is expired
-        if (data.status === 'granted' && data.granted_at) {
-          const grantedTime = new Date(data.granted_at).getTime();
-          const currentTime = new Date().getTime();
-          const timeDiff = currentTime - grantedTime;
-          const isExpired = timeDiff > 10 * 60 * 1000; // 10 minutes in milliseconds
-          setIsCodeExpired(isExpired);
-        }
       } catch (err) {
         setError('Failed to fetch request status');
       } finally {
@@ -38,7 +38,7 @@ export const Status: React.FC = () => {
     fetchRequest();
     const interval = setInterval(fetchRequest, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, navigate]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -117,21 +117,12 @@ export const Status: React.FC = () => {
               <p className="mt-2 text-gray-600">{request.problem_description}</p>
             </div>
 
-            {request.status === 'granted' && request.code && !isCodeExpired && (
+            {request.status === 'granted' && request.code && (
               <div className="bg-green-50 p-4 rounded-lg">
                 <h2 className="text-lg font-semibold text-green-700">Activation Code</h2>
                 <p className="mt-2 text-2xl font-mono text-green-600">{request.code}</p>
                 <p className="mt-2 text-sm text-green-600">
-                  Use this code to activate your siren device. This code is valid for one-time use only and expires in 10 minutes.
-                </p>
-              </div>
-            )}
-
-            {request.status === 'granted' && isCodeExpired && (
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h2 className="text-lg font-semibold text-yellow-700">Code Expired</h2>
-                <p className="mt-2 text-yellow-600">
-                  The activation code has expired. Please contact support if you need assistance.
+                  Use this code to activate your siren device. This code is valid for one-time use only.
                 </p>
               </div>
             )}
