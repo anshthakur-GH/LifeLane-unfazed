@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import { Copy } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface Request {
   id: string;
@@ -30,7 +31,7 @@ const RequestStatus: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+      const res = await fetch(`${API_URL}/api/emergency-requests/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

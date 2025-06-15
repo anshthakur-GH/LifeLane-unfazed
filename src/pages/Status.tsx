@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { API_URL } from '../config';
 
 export const Status: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +19,7 @@ export const Status: React.FC = () => {
           return;
         }
 
-        const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+        const res = await fetch(`${API_URL}/api/emergency-requests/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

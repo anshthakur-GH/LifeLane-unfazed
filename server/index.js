@@ -45,7 +45,7 @@ if (OPENROUTER_API_KEY) {
     apiKey: OPENROUTER_API_KEY,
     defaultHeaders: {
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'http://localhost:3000',
+      'HTTP-Referer': 'https://lifelane-unfazed.onrender.com',
       'X-Title': 'LifeLane',
       'Content-Type': 'application/json'
     }
@@ -60,8 +60,16 @@ router.use(cors());
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files from the React app
-router.use(express.static(path.join(__dirname, '../dist')));
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app
+  router.use(express.static(path.join(__dirname, '../dist')));
+  
+  // Handle React routing, return all requests to React app
+  router.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -683,21 +691,27 @@ router.get('/test-chat', async (req, res) => {
   }
 });
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  router.use(express.static(path.join(__dirname, '../client/dist')));
-  
-  router.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-}
+// Add a test endpoint
+router.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!' });
+});
 
 // Error handling middleware
 router.use((err, req, res, next) => {
-  console.error('Server error:', err);
+  console.error('Server error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+    headers: req.headers
+  });
+  
   res.status(500).json({ 
     error: 'Internal server error',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    path: req.path,
+    method: req.method
   });
 });
 

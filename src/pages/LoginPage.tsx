@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone } from 'lucide-react';
+import { API_URL } from '../config';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export const LoginPage: React.FC = () => {
     fullName: '',
   });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -23,6 +25,7 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
 
     try {
@@ -32,16 +35,12 @@ export const LoginPage: React.FC = () => {
           return;
         }
 
-        const res = await fetch('http://localhost:5000/api/register', {
+        const res = await fetch(`${API_URL}/api/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            name: formData.fullName,
-          }),
+          body: JSON.stringify(formData),
         });
 
         const data = await res.json();
@@ -54,15 +53,12 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('user_name', formData.fullName);
         navigate('/dashboard');
       } else if (activeTab === 'login') {
-        const res = await fetch('http://localhost:5000/api/login', {
+        const res = await fetch(`${API_URL}/api/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
+          body: JSON.stringify(formData),
         });
 
         const data = await res.json();
@@ -79,15 +75,12 @@ export const LoginPage: React.FC = () => {
           navigate('/dashboard');
         }
       } else if (activeTab === 'admin') {
-        const res = await fetch('http://localhost:5000/api/login', {
+        const res = await fetch(`${API_URL}/api/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
+          body: JSON.stringify(formData),
         });
 
         const data = await res.json();
@@ -106,6 +99,8 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 

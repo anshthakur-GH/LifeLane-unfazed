@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Calendar, FileText, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config';
 
 export const EmergencyRequestForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -71,17 +72,13 @@ export const EmergencyRequestForm: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/emergency-request', {
+      const res = await fetch(`${API_URL}/api/emergency-request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          patientName: formData.patientName,
-          age: formData.age,
-          problemDescription: formData.problemDescription
-        }),
+        body: JSON.stringify(formData)
       });
 
       const data = await res.json();

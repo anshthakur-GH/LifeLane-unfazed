@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 export const AdminPanel: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/emergency-requests', {
+      const res = await fetch(`${API_URL}/api/emergency-requests`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -58,7 +59,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+      const res = await fetch(`${API_URL}/api/emergency-requests/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ export const AdminPanel: React.FC = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/emergency-requests/${id}`, {
+      const res = await fetch(`${API_URL}/api/emergency-requests/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

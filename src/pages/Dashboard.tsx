@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Clock, CheckCircle, XCircle, Eye, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { API_URL } from '../config';
 
 interface DrivingLicense {
   license_uploaded: boolean;
@@ -33,7 +34,7 @@ export const Dashboard: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/emergency-requests/user', {
+      const res = await fetch(`${API_URL}/api/emergency-requests/user`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -57,7 +58,7 @@ export const Dashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('http://localhost:5000/api/driving-license', {
+      const res = await fetch(`${API_URL}/api/driving-license`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -89,7 +90,7 @@ export const Dashboard: React.FC = () => {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/upload-license', {
+      const res = await fetch(`${API_URL}/api/upload-license`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
