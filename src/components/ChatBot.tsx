@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send } from 'lucide-react';
 import botLogo from '../assets/Bot-Logo.png';
 
@@ -13,22 +13,31 @@ export const ChatBot: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       const token = localStorage.getItem('token');
@@ -39,6 +48,7 @@ export const ChatBot: React.FC = () => {
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ message: userMessage }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!res.ok) {
@@ -47,13 +57,18 @@ export const ChatBot: React.FC = () => {
 
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Request was aborted');
+        return;
+      }
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: "I'm sorry, I'm having trouble connecting right now. Please try again later." 
       }]);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -63,6 +78,15 @@ export const ChatBot: React.FC = () => {
       handleSend();
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -131,10 +155,11 @@ export const ChatBot: React.FC = () => {
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={isLoading}
               />
               <button
                 onClick={handleSend}
-                disabled={isLoading}
+                disabled={isLoading || !input.trim()}
                 className="bg-primary text-white p-2 rounded-lg hover:bg-opacity-90 transition-all disabled:opacity-50"
               >
                 <Send className="w-5 h-5" />

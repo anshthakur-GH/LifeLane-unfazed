@@ -328,34 +328,7 @@ app.post('/api/chatbot', async (req, res) => {
 
   console.log('Attempting to get completion from OpenRouter with message:', message);
   try {
-    const systemMessage = `You are LifeBot, a professional, helpful, and clear chatbot for LifeLane. Your replies must be short (1-2 lines), direct, and easy to read. Do not use emojis, markdown (like bold or italics), or overly casual tones. Follow these specific instructions for common questions:
-
-- What is LifeLane? LifeLane lets you turn your private car into an emergency vehicle by requesting a verified siren activation code during real medical emergencies.
-- How does LifeLane work? You submit an emergency request. After it's verified by our team, you get a one-time-use code to activate your siren device.
-- Who verifies my request? Our internal admin team verifies each request manually before issuing a siren code.
-- Do you provide ambulances? No. LifeLane helps you use your own vehicle as emergency transport when ambulances aren't available.
-- How do I submit an emergency request? Click "Request Emergency" on the app or website and fill in the patient name, age, and emergency details.
-- What happens after I submit a request? Your request goes to our admin team. Once approved, you'll receive a one-time code to activate your siren device.
-- What if my request is rejected? If your request is dismissed, you'll be notified in your dashboard. You can submit a new request if needed.
-- What is a siren code? A siren code is a one-time-use code you receive after approval. Entering it into your LifeLane device activates your siren.
-- Can I use the code multiple times? No. Each siren code is valid for one-time use only and expires after a few minutes.
-- How long is the code valid? Your siren code is valid for 5 minutes from the time it's issued.
-- What if the code doesn't work? Make sure you're entering it correctly. If it still doesn't work, contact support immediately.
-- Do I need a device to use LifeLane? Yes. You need the LifeLane siren device installed in your vehicle to use the code and activate the siren.
-- How does the device work? The device checks the code you enter against a list of valid ones stored in it. If the code is valid, the siren turns on.
-- What if my device isn't responding? Please check the power and re-enter your code. If the problem continues, contact our support team.
-- What happens if someone misuses the system? Misuse may result in account suspension, fines, or legal action. LifeLane is only for real emergencies.
-- Is it legal to use a siren on a private vehicle? You can only activate the siren after verified approval and with a valid code. Misuse is strictly prohibited.
-- Where can I see my past requests? Go to your dashboard to view all your requests and their current status.
-- What does "pending" mean? Your request has been submitted and is waiting for admin verification.
-- What does "granted" mean? Your request was approved and a siren code has been issued.
-- What does "dismissed" mean? Your request was reviewed but not approved. You can submit a new one if needed.
-- How do I contact support? You can email us at lifelanesupport@gmail.com or call +91 73938 00862.
-- Is someone available in emergencies? Yes. Our support team is available 24/7 to assist with code issues or emergency requests.
-- I have a different question. I'm here to help! Please ask your question or contact support for more detailed assistance.
-- Thank you. You're welcome. Stay safe.
-
-For any other questions, provide a short, direct answer consistent with the persona.`;
+    const systemMessage = `You are LifeBot, a professional, helpful, and clear chatbot for LifeLane. Keep responses short (1-2 lines) and direct. No emojis or markdown.`;
 
     const completion = await openai.chat.completions.create({
       model: "deepseek/deepseek-r1-0528:free",
@@ -363,11 +336,10 @@ For any other questions, provide a short, direct answer consistent with the pers
         { role: "system", content: systemMessage },
         { role: "user", content: message }
       ],
-      // Optional: Add HTTP-Referer and X-Title for OpenRouter rankings
-      // headers: {
-      //   "HTTP-Referer": "YOUR_SITE_URL", 
-      //   "X-Title": "YOUR_SITE_NAME"
-      // }
+      max_tokens: 100, // Limit response length
+      temperature: 0.7, // Add some randomness but keep it focused
+      presence_penalty: 0.6, // Encourage diverse responses
+      frequency_penalty: 0.3, // Reduce repetition
     });
 
     res.json({
@@ -398,6 +370,88 @@ app.post('/api/emergency-requests', async (req, res) => {
   } catch (error) {
     console.error('Error creating request:', error);
     res.status(500).json({ error: 'Failed to create request' });
+  }
+});
+
+// POST: Upload driving license
+app.post('/api/upload-license', authenticateToken, async (req, res) => {
+  try {
+    const { name, license_number, valid_till } = req.body;
+    
+    // Validate required fields
+    if (!name || !license_number || !valid_till) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Check if user already has a license
+    const [existingLicense] = await pool.query(
+      'SELECT * FROM driving_licenses WHERE user_id = ?',
+      [req.user.id]
+    );
+
+    if (existingLicense.length > 0) {
+      // Update existing license
+      await pool.query(
+        'UPDATE driving_licenses SET license_name = ?, license_number = ?, license_valid_till = ?, license_uploaded = TRUE WHERE user_id = ?',
+        [name, license_number, valid_till, req.user.id]
+      );
+    } else {
+      // Insert new license
+      await pool.query(
+        'INSERT INTO driving_licenses (user_id, license_name, license_number, license_valid_till, license_uploaded) VALUES (?, ?, ?, ?, TRUE)',
+        [req.user.id, name, license_number, valid_till]
+      );
+    }
+
+    res.json({ message: 'License uploaded successfully' });
+  } catch (error) {
+    console.error('Error uploading license:', error);
+    // Send more detailed error message
+    res.status(500).json({ 
+      error: 'Failed to upload license',
+      details: error.message 
+    });
+  }
+});
+
+// GET: Get user's driving license status
+app.get('/api/driving-license', authenticateToken, async (req, res) => {
+  try {
+    // First check if the table exists
+    const [tables] = await pool.query(
+      'SHOW TABLES LIKE "driving_licenses"'
+    );
+
+    if (tables.length === 0) {
+      // Table doesn't exist, create it
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS driving_licenses (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          user_id INT NOT NULL,
+          license_name VARCHAR(255) NOT NULL,
+          license_number VARCHAR(50) NOT NULL,
+          license_valid_till DATE NOT NULL,
+          license_uploaded BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+    }
+
+    const [license] = await pool.query(
+      'SELECT * FROM driving_licenses WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    res.json(license[0] || { license_uploaded: false });
+  } catch (error) {
+    console.error('Error fetching license:', error);
+    // Send more detailed error message
+    res.status(500).json({ 
+      error: 'Failed to fetch license',
+      details: error.message 
+    });
   }
 });
 

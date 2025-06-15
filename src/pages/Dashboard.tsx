@@ -1,11 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Plus, Clock, CheckCircle, XCircle, Eye, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+interface DrivingLicense {
+  license_uploaded: boolean;
+  license_name?: string;
+  license_number?: string;
+  license_valid_till?: string;
+}
 
 export const Dashboard: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [license, setLicense] = useState<DrivingLicense | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [isLoadingLicense, setIsLoadingLicense] = useState(true);
   const navigate = useNavigate();
+
+  const [licenseForm, setLicenseForm] = useState({
+    name: '',
+    license_number: '',
+    valid_till: ''
+  });
 
   const fetchRequests = async () => {
     try {
@@ -34,15 +52,83 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const fetchLicense = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch('http://localhost:5000/api/driving-license', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.details || data.error || 'Failed to fetch license');
+      }
+      
+      setLicense(data);
+    } catch (error) {
+      console.error('Error fetching license:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch license');
+    } finally {
+      setIsLoadingLicense(false);
+    }
+  };
+
+  const handleLicenseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch('http://localhost:5000/api/upload-license', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(licenseForm)
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.details || data.error || 'Failed to upload license');
+      }
+      
+      toast.success('License uploaded successfully');
+      await fetchLicense();
+      setLicenseForm({ name: '', license_number: '', valid_till: '' });
+      setShowLicenseModal(false);
+    } catch (error) {
+      console.error('Error uploading license:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload license');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     const admin = localStorage.getItem('is_admin') === 'true';
     setIsAdmin(admin);
 
     // Initial fetch
     fetchRequests();
+    fetchLicense();
 
     // Set up polling every 5 seconds
-    const interval = setInterval(fetchRequests, 5000);
+    const interval = setInterval(() => {
+      fetchRequests();
+      fetchLicense();
+    }, 5000);
     return () => clearInterval(interval);
   }, [navigate]);
 
@@ -80,7 +166,7 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="pt-16 min-h-screen bg-bg-light">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
@@ -92,16 +178,100 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             {!isAdmin && (
-              <Link
-                to="/request"
-                className="mt-6 md:mt-0 inline-flex items-center bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                New Emergency Request
-              </Link>
+              <div className="mt-6 md:mt-0 flex flex-col items-end gap-4">
+                <Link
+                  to="/request"
+                  className="inline-flex items-center bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  New Emergency Request
+                </Link>
+                
+                {!isLoadingLicense && license && !license.license_uploaded && (
+                  <button
+                    onClick={() => setShowLicenseModal(true)}
+                    className="inline-flex items-center bg-yellow-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    <FileText className="w-5 h-5 mr-2" />
+                    Verify Your Driving License
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
+
+        {/* License Verification Modal */}
+        {showLicenseModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Verify Your Driving License</h3>
+                <button
+                  onClick={() => setShowLicenseModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <form onSubmit={handleLicenseSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name on Driving License
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={licenseForm.name}
+                    onChange={(e) => setLicenseForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Driving License Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={licenseForm.license_number}
+                    onChange={(e) => setLicenseForm(prev => ({ ...prev, license_number: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Valid Till
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={licenseForm.valid_till}
+                    onChange={(e) => setLicenseForm(prev => ({ ...prev, valid_till: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div className="flex gap-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowLicenseModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit License'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -140,7 +310,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-gray-600 mb-1">{req.problem_description}</div>
                     <div className="text-gray-500 text-sm mb-1">Age: {req.age}</div>
-                    <div className="text-gray-400 text-xs">{new Date(req.date).toLocaleString()}</div>
+                    <div className="text-gray-400 text-xs">{new Date(req.created_at).toLocaleString()}</div>
                   </div>
                   <div className="mt-4 md:mt-0">
                     <Link
