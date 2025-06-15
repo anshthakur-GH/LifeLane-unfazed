@@ -300,7 +300,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
     hasMessage: !!userMessage,
     openaiInitialized: !!openai,
     hasApiKey: !!OPENROUTER_API_KEY,
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    apiKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 10) + '...' : null
   });
 
   if (!openai) {
@@ -318,7 +319,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
   try {
     console.log('Preparing OpenRouter API request...', {
-      model: 'anthropic/claude-3-sonnet-20240229',
+      model: 'anthropic/claude-3-haiku-20240307', // Changed to a simpler model
       messageLength: userMessage.length,
       headers: {
         ...openai.defaultHeaders,
@@ -327,7 +328,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3-sonnet-20240229',
+      model: 'anthropic/claude-3-haiku-20240307', // Changed to a simpler model
       messages: [
         {
           role: 'system',
@@ -369,7 +370,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
         baseURL: openai.baseURL,
         hasApiKey: !!OPENROUTER_API_KEY,
         apiKeyLength: OPENROUTER_API_KEY?.length,
-        nodeEnv: process.env.NODE_ENV
+        nodeEnv: process.env.NODE_ENV,
+        apiKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 10) + '...' : null
       }
     });
 
@@ -712,18 +714,35 @@ router.get('/test-chat', async (req, res) => {
 
 // Test endpoint for OpenRouter configuration
 router.get('/test-chat-config', (req, res) => {
-  const config = {
-    hasApiKey: !!OPENROUTER_API_KEY,
-    apiKeyLength: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.length : 0,
-    hasOpenAI: !!openai,
-    appUrl: process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
-    headers: openai ? openai.defaultHeaders : null,
-    nodeEnv: process.env.NODE_ENV,
-    baseURL: openai ? openai.baseURL : null
-  };
-  
-  console.log('Chat configuration:', config);
-  res.json(config);
+  try {
+    const config = {
+      hasApiKey: !!OPENROUTER_API_KEY,
+      apiKeyLength: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.length : 0,
+      apiKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 10) + '...' : null,
+      hasOpenAI: !!openai,
+      appUrl: process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
+      headers: openai ? openai.defaultHeaders : null,
+      nodeEnv: process.env.NODE_ENV,
+      baseURL: openai ? openai.baseURL : null,
+      openaiConfig: openai ? {
+        baseURL: openai.baseURL,
+        defaultHeaders: {
+          ...openai.defaultHeaders,
+          apiKey: '***' // Masked for security
+        }
+      } : null
+    };
+    
+    console.log('Chat configuration:', config);
+    res.json(config);
+  } catch (error) {
+    console.error('Error in test-chat-config:', error);
+    res.status(500).json({
+      error: 'Failed to get configuration',
+      details: error.message,
+      stack: error.stack
+    });
+  }
 });
 
 // Add a test endpoint
