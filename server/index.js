@@ -321,9 +321,6 @@ app.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Load chatbot intents
-const chatbotIntents = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'chatbot_intents.json'), 'utf8'));
-
 // Function to find the best matching intent
 function findMatchingIntent(message) {
   const lowerMessage = message.toLowerCase().trim();
@@ -354,6 +351,11 @@ function findMatchingIntent(message) {
     responses: ["I'm not sure I understand. Could you please rephrase your question?"]
   };
 }
+
+// Routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Chatbot endpoint
 app.post('/api/chat', async (req, res) => {
@@ -388,8 +390,92 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Create a new emergency request
-app.post('/api/emergency-requests', async (req, res) => {
+// User routes
+app.post('/api/users/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    
+    // Check if user already exists
+    const [existingUsers] = await pool.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new user
+    const [result] = await pool.query(
+      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
+      [email, hashedPassword, name]
+    );
+
+    // Generate token
+    const token = jwt.sign(
+      { id: result.insertId, email, is_admin: false },
+      JWT_SECRET
+    );
+
+    res.json({ token });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.post('/api/users/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const [users] = await pool.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const user = users[0];
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, is_admin: user.is_admin },
+      JWT_SECRET
+    );
+
+    res.json({ 
+      token, 
+      is_admin: user.is_admin,
+      name: user.name 
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.get('/api/users/profile', authenticateToken, async (req, res) => {
+  // ... existing code ...
+});
+
+app.put('/api/users/profile', authenticateToken, async (req, res) => {
+  // ... existing code ...
+});
+
+// Emergency routes
+app.post('/api/emergencies', authenticateToken, async (req, res) => {
   try {
     const { patient_name, problem_description, age } = req.body;
     
@@ -407,6 +493,166 @@ app.post('/api/emergency-requests', async (req, res) => {
   } catch (error) {
     console.error('Error creating request:', error);
     res.status(500).json({ error: 'Failed to create request' });
+  }
+});
+
+app.get('/api/emergencies', authenticateToken, async (req, res) => {
+  try {
+    const [requests] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching requests:', error);
+    res.status(500).json({ error: 'Failed to fetch requests' });
+  }
+});
+
+app.get('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+  try {
+    const [requests] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [req.params.requestId]
+    );
+
+    if (requests.length === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    // Check if user is admin or the request owner
+    const isAdmin = req.user.is_admin;
+    const isOwner = requests[0].user_id === req.user.id;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json(requests[0]);
+  } catch (error) {
+    console.error('Error fetching request:', error);
+    res.status(500).json({ error: 'Failed to fetch request' });
+  }
+});
+
+app.put('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['granted', 'dismissed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    // If status is granted, get an unused activation code
+    let activationCode = null;
+    if (status === 'granted') {
+      // Get an unused activation code
+      const [codes] = await pool.query(
+        'SELECT code FROM activation_codes WHERE used = FALSE LIMIT 1'
+      );
+
+      if (codes.length === 0) {
+        return res.status(500).json({ error: 'No activation codes available' });
+      }
+
+      activationCode = codes[0].code;
+
+      // Mark the code as used and assign it
+      await pool.query(
+        'UPDATE activation_codes SET used = TRUE, assigned_to = ?, assigned_at = NOW() WHERE code = ?',
+        [req.user.id, activationCode]
+      );
+    }
+
+    const [result] = await pool.query(
+      'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
+      [
+        status,
+        status === 'granted' ? activationCode : null,
+        status === 'granted' ? new Date() : null,
+        req.params.requestId
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    const [updatedRequest] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [req.params.requestId]
+    );
+
+    res.json(updatedRequest[0]);
+  } catch (error) {
+    console.error('Error updating request:', error);
+    res.status(500).json({ error: 'Failed to update request' });
+  }
+});
+
+// Admin routes
+app.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
+  try {
+    const [requests] = await pool.query(
+      'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
+    );
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching requests:', error);
+    res.status(500).json({ error: 'Failed to fetch requests' });
+  }
+});
+
+app.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['granted', 'dismissed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    // If status is granted, get an unused activation code
+    let activationCode = null;
+    if (status === 'granted') {
+      // Get an unused activation code
+      const [codes] = await pool.query(
+        'SELECT code FROM activation_codes WHERE used = FALSE LIMIT 1'
+      );
+
+      if (codes.length === 0) {
+        return res.status(500).json({ error: 'No activation codes available' });
+      }
+
+      activationCode = codes[0].code;
+
+      // Mark the code as used and assign it
+      await pool.query(
+        'UPDATE activation_codes SET used = TRUE, assigned_to = ?, assigned_at = NOW() WHERE code = ?',
+        [req.user.id, activationCode]
+      );
+    }
+
+    const [result] = await pool.query(
+      'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
+      [
+        status,
+        status === 'granted' ? activationCode : null,
+        status === 'granted' ? new Date() : null,
+        req.params.requestId
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    const [updatedRequest] = await pool.query(
+      'SELECT * FROM emergency_requests WHERE id = ?',
+      [req.params.requestId]
+    );
+
+    res.json(updatedRequest[0]);
+  } catch (error) {
+    console.error('Error updating request:', error);
+    res.status(500).json({ error: 'Failed to update request' });
   }
 });
 
@@ -515,6 +761,24 @@ app.get('/api/test-chat', async (req, res) => {
       stack: error.stack
     });
   }
+});
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Initialize database and start server
