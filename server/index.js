@@ -270,7 +270,7 @@ router.get('/health', (req, res) => {
 });
 
 // Chatbot endpoint
-router.post('/chat', async (req, res) => {
+router.post('/chat', authenticateToken, async (req, res) => {
   const { message: userMessage } = req.body;
   
   if (!openai) {
@@ -284,13 +284,17 @@ router.post('/chat', async (req, res) => {
   }
 
   try {
-    console.log('Sending request to OpenRouter API...');
+    console.log('Sending request to OpenRouter API...', {
+      user: req.user.id,
+      message: userMessage
+    });
+
     const completion = await openai.chat.completions.create({
       model: 'anthropic/claude-3-opus-20240229',
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful emergency response assistant.'
+          content: 'You are a helpful emergency response assistant for LifeLane. You help users understand how to use the emergency request system and provide guidance during medical emergencies.'
         },
         {
           role: 'user',
@@ -315,7 +319,8 @@ router.post('/chat', async (req, res) => {
       message: error.message,
       status: error.status,
       type: error.type,
-      code: error.code
+      code: error.code,
+      user: req.user.id
     });
     res.status(500).json({ 
       error: 'Failed to get response from chatbot',

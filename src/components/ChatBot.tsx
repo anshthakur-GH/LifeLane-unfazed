@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send } from 'lucide-react';
 import botLogo from '../assets/Bot-Logo.png';
 import { API_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 
 export const ChatBot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,7 @@ export const ChatBot: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const navigate = useNavigate();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +60,14 @@ export const ChatBot: React.FC = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
+        if (res.status === 401 || res.status === 403) {
+          // Handle authentication errors
+          localStorage.removeItem('token');
+          localStorage.removeItem('is_admin');
+          localStorage.removeItem('user_name');
+          navigate('/login');
+          throw new Error('Please log in to continue');
+        }
         throw new Error(errorData.details || errorData.error || 'Failed to get response');
       }
 
@@ -76,7 +86,7 @@ export const ChatBot: React.FC = () => {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: error.message === 'Authentication required' 
+        content: error.message === 'Authentication required' || error.message === 'Please log in to continue'
           ? "Please log in to use the chatbot."
           : "I'm sorry, I'm having trouble connecting right now. Please try again later."
       }]);
