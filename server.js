@@ -30,40 +30,47 @@ async function startServer() {
     console.log('Database initialized successfully');
 
     // Import and use routes from server/index.js
-    import('./server/index.js').then(({ router }) => {
-      // API routes
-      app.use('/api', router);
+    const { router } = await import('./server/index.js');
+    
+    // API routes
+    app.use('/api', router);
 
-      // Serve static files from the React app
-      if (isProduction) {
-        app.use(express.static(path.join(__dirname, 'dist')));
-        
-        // Handle React routing, return all requests to React app
-        app.get('*', (req, res) => {
-          res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-        });
-      }
-
-      // Error handling middleware
-      app.use((err, req, res, next) => {
-        console.error('Server error:', err);
-        res.status(500).json({ 
-          error: 'Internal server error',
-          message: isProduction ? 'Something went wrong' : err.message
-        });
+    // Serve static files from the React app
+    if (isProduction) {
+      app.use(express.static(path.join(__dirname, 'dist')));
+      
+      // Handle React routing, return all requests to React app
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
       });
+    }
 
-      // Start the server
-      app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
-        console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
+    // Error handling middleware
+    app.use((err, req, res, next) => {
+      console.error('Server error:', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        body: req.body,
+        headers: req.headers
       });
-    }).catch(error => {
-      console.error('Failed to load routes:', error);
-      process.exit(1);
+      
+      res.status(500).json({ 
+        error: 'Internal server error',
+        details: isProduction ? undefined : err.message,
+        path: req.path,
+        method: req.method
+      });
+    });
+
+    // Start the server
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+      console.log(`Environment: ${isProduction ? 'Production' : 'Development'}`);
     });
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error('Failed to initialize server:', error);
     process.exit(1);
   }
 }
