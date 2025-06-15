@@ -351,10 +351,17 @@ router.post('/chat', async (req, res) => {
   const { message: userMessage } = req.body;
   
   if (!openai) {
+    console.error('Chatbot not initialized - OpenAI instance is null');
     return res.status(500).json({ error: 'Chatbot not initialized' });
   }
 
+  if (!userMessage) {
+    console.error('No message provided in request body');
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
   try {
+    console.log('Sending request to OpenRouter API...');
     const completion = await openai.chat.completions.create({
       model: 'anthropic/claude-3-opus-20240229',
       messages: [
@@ -366,15 +373,31 @@ router.post('/chat', async (req, res) => {
           role: 'user',
           content: userMessage
         }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 500
     });
 
+    if (!completion.choices || completion.choices.length === 0) {
+      console.error('No response received from OpenRouter API');
+      return res.status(500).json({ error: 'No response from chatbot' });
+    }
+
+    console.log('Successfully received response from OpenRouter API');
     res.json({ 
       response: completion.choices[0].message.content 
     });
   } catch (error) {
-    console.error('Chat error:', error);
-    res.status(500).json({ error: 'Failed to get response from chatbot' });
+    console.error('Chat error details:', {
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      code: error.code
+    });
+    res.status(500).json({ 
+      error: 'Failed to get response from chatbot',
+      details: error.message
+    });
   }
 });
 

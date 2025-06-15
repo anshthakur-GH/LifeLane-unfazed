@@ -42,6 +42,10 @@ export const ChatBot: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
@@ -53,19 +57,28 @@ export const ChatBot: React.FC = () => {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await res.json();
+        throw new Error(errorData.details || errorData.error || 'Failed to get response');
       }
 
       const data = await res.json();
+      if (!data.response) {
+        throw new Error('No response received from chatbot');
+      }
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Request was aborted');
         return;
       }
+      
+      console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again later." 
+        content: error.message === 'Authentication required' 
+          ? "Please log in to use the chatbot."
+          : "I'm sorry, I'm having trouble connecting right now. Please try again later."
       }]);
     } finally {
       setIsLoading(false);
