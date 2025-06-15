@@ -300,8 +300,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     hasMessage: !!userMessage,
     openaiInitialized: !!openai,
     hasApiKey: !!OPENROUTER_API_KEY,
-    nodeEnv: process.env.NODE_ENV,
-    apiKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 10) + '...' : null
+    nodeEnv: process.env.NODE_ENV
   });
 
   if (!openai) {
@@ -319,16 +318,12 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
   try {
     console.log('Preparing OpenRouter API request...', {
-      model: 'anthropic/claude-3-haiku-20240307', // Changed to a simpler model
-      messageLength: userMessage.length,
-      headers: {
-        ...openai.defaultHeaders,
-        apiKey: '***' // Masked for security
-      }
+      model: 'anthropic/claude-3-haiku-20240307',
+      messageLength: userMessage.length
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3-haiku-20240307', // Changed to a simpler model
+      model: 'anthropic/claude-3-haiku-20240307',
       messages: [
         {
           role: 'system',
@@ -340,7 +335,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
         }
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 500,
+      stream: false
     });
 
     if (!completion.choices || completion.choices.length === 0) {
@@ -363,16 +359,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
       type: error.type,
       code: error.code,
       user: req.user.id,
-      stack: error.stack,
       response: error.response?.data,
-      headers: error.response?.headers,
-      config: {
-        baseURL: openai.baseURL,
-        hasApiKey: !!OPENROUTER_API_KEY,
-        apiKeyLength: OPENROUTER_API_KEY?.length,
-        nodeEnv: process.env.NODE_ENV,
-        apiKeyPrefix: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.substring(0, 10) + '...' : null
-      }
+      headers: error.response?.headers
     });
 
     // Handle specific OpenRouter API errors
@@ -687,7 +675,7 @@ router.get('/test-chat', async (req, res) => {
   try {
     console.log('Testing OpenRouter connection...');
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3-opus-20240229',
+      model: 'anthropic/claude-3-haiku-20240307',
       messages: [
         {
           role: 'system',
@@ -697,7 +685,9 @@ router.get('/test-chat', async (req, res) => {
           role: 'user',
           content: 'Hello, are you working?'
         }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 100
     });
     res.json({ 
       success: true,
@@ -707,7 +697,8 @@ router.get('/test-chat', async (req, res) => {
     console.error('Test chat error:', error);
     res.status(500).json({ 
       success: false,
-      error: error.message 
+      error: error.message,
+      details: error.response?.data
     });
   }
 });
