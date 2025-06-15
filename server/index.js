@@ -10,7 +10,6 @@ import { pool, initializeDatabase } from './db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { intents } from './chatbot_intents.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,7 +35,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Initialize OpenAI only if API key is available
 let openai = null;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_API_KEY = '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';
 
 console.log('Checking OpenRouter API key:', OPENROUTER_API_KEY ? 'Present' : 'Missing');
 
@@ -61,6 +60,18 @@ if (OPENROUTER_API_KEY) {
   }
 } else {
   console.error('OpenRouter chatbot not initialized - API key not provided');
+}
+
+// Load chatbot intents
+let intents = [];
+try {
+  const intentsFile = path.join(__dirname, 'chatbot_intents.json');
+  const intentsData = fs.readFileSync(intentsFile, 'utf8');
+  intents = JSON.parse(intentsData).intents;
+  console.log('Chatbot intents loaded successfully');
+} catch (error) {
+  console.error('Failed to load chatbot intents:', error);
+  intents = [];
 }
 
 // Middleware
@@ -259,35 +270,30 @@ router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Function to find the best matching intent
-function findMatchingIntent(message) {
-  const lowerMessage = message.toLowerCase().trim();
+// Function to match user input against patterns
+function matchIntent(message, intents) {
+  const msg = message.toLowerCase().trim();
   
   // First check for exact matches
   for (const intent of intents) {
     if (intent.patterns.some(pattern => 
-      pattern.toLowerCase() === lowerMessage || 
-      lowerMessage.includes(pattern.toLowerCase())
+      pattern.toLowerCase() === msg || 
+      msg.includes(pattern.toLowerCase())
     )) {
-      return intent;
+      return intent.responses[Math.floor(Math.random() * intent.responses.length)];
     }
   }
   
   // Then check for partial matches
   for (const intent of intents) {
     if (intent.patterns.some(pattern => 
-      lowerMessage.includes(pattern.toLowerCase())
+      msg.includes(pattern.toLowerCase())
     )) {
-      return intent;
+      return intent.responses[Math.floor(Math.random() * intent.responses.length)];
     }
   }
   
-  // If no match found, return the default response
-  return {
-    tag: "default",
-    patterns: [],
-    responses: ["I'm not sure I understand. Could you please rephrase your question?"]
-  };
+  return null;
 }
 
 // Routes
@@ -308,27 +314,31 @@ router.post('/chat', authenticateToken, async (req, res) => {
     nodeEnv: process.env.NODE_ENV
   });
 
-  if (!openai) {
-    console.error('Chatbot not initialized - OpenAI instance is null');
-    return res.status(500).json({ 
-      error: 'Chatbot service unavailable',
-      details: 'The chatbot service is not properly configured. Please contact support.'
-    });
-  }
-
   if (!userMessage) {
     console.error('No message provided in request body');
     return res.status(400).json({ error: 'Message is required' });
   }
 
   try {
-    console.log('Preparing OpenRouter API request...', {
-      model: 'anthropic/claude-3-haiku-20240307',
-      messageLength: userMessage.length
-    });
+    // First try to match against intents
+    const matchedResponse = matchIntent(userMessage, intents);
+    if (matchedResponse) {
+      console.log('Found matching intent response');
+      return res.json({ response: matchedResponse });
+    }
 
+    // If no match found, use OpenRouter API
+    if (!openai) {
+      console.error('Chatbot not initialized - OpenAI instance is null');
+      return res.status(500).json({ 
+        error: 'Chatbot service unavailable',
+        details: 'The chatbot service is not properly configured. Please contact support.'
+      });
+    }
+
+    console.log('No intent match found, using OpenRouter API...');
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3-haiku-20240307',
+      model: 'deepseek/deepseek-r1-0528:free',
       messages: [
         {
           role: 'system',

@@ -1,0 +1,100 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "hi",
+        "hello",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "good evening"
+      ],
+      "responses": [
+        "Hello! I'm your LifeLane emergency response assistant. How can I help you today?",
+        "Hi there! I'm here to help with any emergency situations. What do you need?",
+        "Hello! I'm ready to assist you with emergency services. What can I do for you?"
+      ]
+    },
+    {
+      "tag": "emergency_help",
+      "patterns": [
+        "emergency",
+        "help",
+        "urgent",
+        "critical",
+        "immediate assistance",
+        "need help now"
+      ],
+      "responses": [
+        "I understand this is an emergency. Please use the emergency request form to submit your details. Our team will respond immediately.",
+        "For emergency assistance, please fill out the emergency request form with your details. We'll process it right away.",
+        "I can help you submit an emergency request. Please use the emergency request form to provide your information."
+      ]
+    },
+    {
+      "tag": "how_to_submit",
+      "patterns": [
+        "how to submit",
+        "submit request",
+        "make request",
+        "file request",
+        "create request",
+        "new request"
+      ],
+      "responses": [
+        "To submit an emergency request, click on the 'Emergency Request' button and fill out the form with the required details.",
+        "You can submit an emergency request by clicking the 'Emergency Request' button and completing the form with patient information.",
+        "To create a new emergency request, use the 'Emergency Request' button and provide the necessary details in the form."
+      ]
+    },
+    {
+      "tag": "request_status",
+      "patterns": [
+        "status",
+        "check status",
+        "request status",
+        "track request",
+        "where is my request",
+        "request update"
+      ],
+      "responses": [
+        "You can check your request status in the 'My Requests' section. All your submitted requests will be listed there.",
+        "To check your request status, go to the 'My Requests' section where you'll find all your submitted requests.",
+        "Your request status can be viewed in the 'My Requests' section. Each request will show its current status."
+      ]
+    },
+    {
+      "tag": "contact_support",
+      "patterns": [
+        "contact support",
+        "help desk",
+        "customer service",
+        "support team",
+        "get help",
+        "talk to someone"
+      ],
+      "responses": [
+        "For support, you can contact our help desk at support@lifelane.com or call our 24/7 support line.",
+        "Our support team is available 24/7. You can reach them at support@lifelane.com or through our support line.",
+        "To get in touch with our support team, email support@lifelane.com or call our support line. We're here to help!"
+      ]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": [
+        "bye",
+        "goodbye",
+        "see you",
+        "thank you",
+        "thanks",
+        "that's all"
+      ],
+      "responses": [
+        "Thank you for using LifeLane. Stay safe!",
+        "Goodbye! Remember, we're here 24/7 if you need emergency assistance.",
+        "Take care! Don't hesitate to reach out if you need emergency help."
+      ]
+    }
+  ]
+} 
