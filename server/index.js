@@ -38,18 +38,25 @@ const JWT_SECRET = process.env.JWT_SECRET;
 let openai = null;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
+console.log('Checking OpenRouter API key:', OPENROUTER_API_KEY ? 'Present' : 'Missing');
+
 if (OPENROUTER_API_KEY) {
-  const OpenAI = (await import('openai')).default;
-  openai = new OpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: OPENROUTER_API_KEY,
-    defaultHeaders: {
-      'HTTP-Referer': process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
-      'X-Title': 'LifeLane',
-      'Content-Type': 'application/json'
-    }
-  });
-  console.log('OpenRouter chatbot initialized successfully');
+  try {
+    const OpenAI = (await import('openai')).default;
+    openai = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: OPENROUTER_API_KEY,
+      defaultHeaders: {
+        'HTTP-Referer': process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
+        'X-Title': 'LifeLane',
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('OpenRouter chatbot initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize OpenRouter:', error);
+    openai = null;
+  }
 } else {
   console.error('OpenRouter chatbot not initialized - API key not provided');
 }
@@ -303,7 +310,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
   try {
     console.log('Sending request to OpenRouter API...', {
       user: req.user.id,
-      message: userMessage
+      message: userMessage,
+      headers: openai.defaultHeaders
     });
 
     const completion = await openai.chat.completions.create({
@@ -341,11 +349,13 @@ router.post('/chat', authenticateToken, async (req, res) => {
       type: error.type,
       code: error.code,
       user: req.user.id,
-      stack: error.stack
+      stack: error.stack,
+      response: error.response?.data
     });
 
     // Handle specific OpenRouter API errors
     if (error.status === 401) {
+      console.error('OpenRouter authentication failed:', error.response?.data);
       return res.status(500).json({ 
         error: 'Chatbot authentication failed',
         details: 'Unable to authenticate with the AI service. Please contact support.'
@@ -353,11 +363,15 @@ router.post('/chat', authenticateToken, async (req, res) => {
     }
 
     if (error.status === 429) {
+      console.error('OpenRouter rate limit exceeded:', error.response?.data);
       return res.status(500).json({ 
         error: 'Rate limit exceeded',
         details: 'The chatbot service is currently busy. Please try again in a few moments.'
       });
     }
+
+    // Log the full error for debugging
+    console.error('Full error object:', error);
 
     res.status(500).json({ 
       error: 'Failed to get response from chatbot',
@@ -674,6 +688,20 @@ router.get('/test-chat', async (req, res) => {
       error: error.message 
     });
   }
+});
+
+// Test endpoint for OpenRouter configuration
+router.get('/test-chat-config', (req, res) => {
+  const config = {
+    hasApiKey: !!OPENROUTER_API_KEY,
+    apiKeyLength: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.length : 0,
+    hasOpenAI: !!openai,
+    appUrl: process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
+    headers: openai ? openai.defaultHeaders : null
+  };
+  
+  console.log('Chat configuration:', config);
+  res.json(config);
 });
 
 // Add a test endpoint
