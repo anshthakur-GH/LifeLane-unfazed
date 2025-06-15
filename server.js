@@ -28,18 +28,19 @@ initializeDatabase().catch(console.error);
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Import all routes from server/index.js
-import './server/index.js';
-
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
+// Import and use routes from server/index.js
+import { router } from './server/index.js';
+app.use('/api', router);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
+});
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(port, () => {

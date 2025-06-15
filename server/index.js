@@ -29,7 +29,7 @@ console.log('================================');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+const router = express.Router();
 const port = process.env.PORT || 5000;
 const upload = multer();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -56,12 +56,12 @@ if (OPENROUTER_API_KEY) {
 }
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+router.use(cors());
+router.use(bodyParser.json());
+router.use(bodyParser.urlencoded({ extended: true }));
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../dist')));
+router.use(express.static(path.join(__dirname, '../dist')));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -90,7 +90,7 @@ const isAdmin = (req, res, next) => {
 };
 
 // Test database connection
-app.get('/api/test-db', async (req, res) => {
+router.get('/api/test-db', async (req, res) => {
   try {
     const [result] = await pool.query('SELECT 1 as test');
     res.json({
@@ -109,7 +109,7 @@ app.get('/api/test-db', async (req, res) => {
 });
 
 // Register new user
-app.post('/api/register', async (req, res) => {
+router.post('/api/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -146,7 +146,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // Login user
-app.post('/api/login', async (req, res) => {
+router.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -186,7 +186,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // POST: Save new emergency request
-app.post('/api/emergency-request', authenticateToken, async (req, res) => {
+router.post('/api/emergency-request', authenticateToken, async (req, res) => {
   try {
     const { patientName, age, problemDescription } = req.body;
     
@@ -213,7 +213,7 @@ app.post('/api/emergency-request', authenticateToken, async (req, res) => {
 });
 
 // GET: Get user's requests
-app.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
+router.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -227,7 +227,7 @@ app.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
 });
 
 // GET: Get all requests (admin only)
-app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
+router.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
@@ -240,7 +240,7 @@ app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) 
 });
 
 // PUT: Update request status (admin only)
-app.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, async (req, res) => {
+router.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -295,7 +295,7 @@ app.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, async 
 });
 
 // GET: Get single request by ID
-app.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
+router.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -353,12 +353,12 @@ function findMatchingIntent(message) {
 }
 
 // Routes
-app.get('/api/health', (req, res) => {
+router.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
 // Chatbot endpoint
-app.post('/api/chat', async (req, res) => {
+router.post('/api/chat', async (req, res) => {
   const { message: userMessage } = req.body;
   
   if (!userMessage) {
@@ -391,7 +391,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // User routes
-app.post('/api/users/register', async (req, res) => {
+router.post('/api/users/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -427,7 +427,7 @@ app.post('/api/users/register', async (req, res) => {
   }
 });
 
-app.post('/api/users/login', async (req, res) => {
+router.post('/api/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -466,16 +466,16 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-app.get('/api/users/profile', authenticateToken, async (req, res) => {
+router.get('/api/users/profile', authenticateToken, async (req, res) => {
   // ... existing code ...
 });
 
-app.put('/api/users/profile', authenticateToken, async (req, res) => {
+router.put('/api/users/profile', authenticateToken, async (req, res) => {
   // ... existing code ...
 });
 
 // Emergency routes
-app.post('/api/emergencies', authenticateToken, async (req, res) => {
+router.post('/api/emergencies', authenticateToken, async (req, res) => {
   try {
     const { patient_name, problem_description, age } = req.body;
     
@@ -496,7 +496,7 @@ app.post('/api/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/emergencies', authenticateToken, async (req, res) => {
+router.get('/api/emergencies', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -509,7 +509,7 @@ app.get('/api/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.get('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -535,7 +535,7 @@ app.get('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.put('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -590,7 +590,7 @@ app.put('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
 });
 
 // Admin routes
-app.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
+router.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
@@ -602,7 +602,7 @@ app.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -657,7 +657,7 @@ app.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, res)
 });
 
 // POST: Upload driving license
-app.post('/api/upload-license', authenticateToken, async (req, res) => {
+router.post('/api/upload-license', authenticateToken, async (req, res) => {
   try {
     const { name, license_number, valid_till } = req.body;
     
@@ -698,7 +698,7 @@ app.post('/api/upload-license', authenticateToken, async (req, res) => {
 });
 
 // GET: Get user's driving license status
-app.get('/api/driving-license', authenticateToken, async (req, res) => {
+router.get('/api/driving-license', authenticateToken, async (req, res) => {
   try {
     // First check if the table exists
     const [tables] = await pool.query(
@@ -739,7 +739,7 @@ app.get('/api/driving-license', authenticateToken, async (req, res) => {
 });
 
 // Test endpoint for OpenRouter
-app.get('/api/test-chat', async (req, res) => {
+router.get('/api/test-chat', async (req, res) => {
   try {
     console.log('Testing OpenRouter connection...');
     const completion = await openai.chat.completions.create({
@@ -765,15 +765,15 @@ app.get('/api/test-chat', async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+  router.use(express.static(path.join(__dirname, '../client/dist')));
   
-  app.get('*', (req, res) => {
+  router.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
 }
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+router.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
@@ -783,7 +783,7 @@ app.use((err, req, res, next) => {
 
 // Initialize database and start server
 initializeDatabase().then(() => {
-  app.listen(port, () => {
+  router.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 }).catch(error => {
@@ -796,4 +796,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Optionally, log to a file or a monitoring service
   // process.exit(1); // Exit with a failure code to allow process managers to restart
-}); 
+});
+
+export { router }; 
