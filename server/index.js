@@ -3,7 +3,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { db } from './db.js';
+import { pool, initializeDatabase } from './db.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,10 +11,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Initialize database
+initializeDatabase().catch(console.error);
+
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://lifelane.vercel.app'],
-    credentials: true
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'https://lifelane.vercel.app'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -25,7 +30,7 @@ app.post('/api/login', async (req, res) => {
         const { email, password } = req.body;
         
         // Get user from database
-        const [users] = await db.query(
+        const [users] = await pool.query(
             'SELECT * FROM users WHERE email = ?',
             [email]
         );
