@@ -50,7 +50,9 @@ if (OPENROUTER_API_KEY) {
         'HTTP-Referer': process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
         'X-Title': 'LifeLane',
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 30000, // 30 second timeout
+      maxRetries: 3
     });
     console.log('OpenRouter chatbot initialized successfully');
   } catch (error) {
@@ -691,6 +693,10 @@ router.get('/driving-license', authenticateToken, async (req, res) => {
 // Test endpoint for OpenRouter
 router.get('/test-chat', async (req, res) => {
   try {
+    if (!openai) {
+      throw new Error('OpenAI instance not initialized');
+    }
+
     console.log('Testing OpenRouter connection...');
     const completion = await openai.chat.completions.create({
       model: 'anthropic/claude-3-haiku-20240307',
@@ -707,12 +713,19 @@ router.get('/test-chat', async (req, res) => {
       temperature: 0.7,
       max_tokens: 100
     });
+
+    console.log('Test chat response received:', completion.choices[0].message.content);
     res.json({ 
       success: true,
       response: completion.choices[0].message.content 
     });
   } catch (error) {
-    console.error('Test chat error:', error);
+    console.error('Test chat error:', {
+      message: error.message,
+      status: error.status,
+      response: error.response?.data,
+      stack: error.stack
+    });
     res.status(500).json({ 
       success: false,
       error: error.message,
