@@ -90,26 +90,18 @@ const isAdmin = (req, res, next) => {
 };
 
 // Test database connection
-router.get('/api/test-db', async (req, res) => {
+router.get('/test-db', async (req, res) => {
   try {
     const [result] = await pool.query('SELECT 1 as test');
-    res.json({
-      success: true,
-      message: 'Database connection successful',
-      result
-    });
+    res.json({ success: true, result });
   } catch (error) {
-    console.error('Database connection test failed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Database connection failed',
-      error: error.message
-    });
+    console.error('Database test error:', error);
+    res.status(500).json({ error: 'Database connection failed' });
   }
 });
 
 // Register new user
-router.post('/api/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -146,7 +138,7 @@ router.post('/api/register', async (req, res) => {
 });
 
 // Login user
-router.post('/api/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -186,7 +178,7 @@ router.post('/api/login', async (req, res) => {
 });
 
 // POST: Save new emergency request
-router.post('/api/emergency-request', authenticateToken, async (req, res) => {
+router.post('/emergency-request', authenticateToken, async (req, res) => {
   try {
     const { patientName, age, problemDescription } = req.body;
     
@@ -213,7 +205,7 @@ router.post('/api/emergency-request', authenticateToken, async (req, res) => {
 });
 
 // GET: Get user's requests
-router.get('/api/emergency-requests/user', authenticateToken, async (req, res) => {
+router.get('/emergency-requests/user', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -227,7 +219,7 @@ router.get('/api/emergency-requests/user', authenticateToken, async (req, res) =
 });
 
 // GET: Get all requests (admin only)
-router.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
+router.get('/emergency-requests', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
@@ -240,7 +232,7 @@ router.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, re
 });
 
 // PUT: Update request status (admin only)
-router.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, async (req, res) => {
+router.put('/emergency-requests/:requestId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -295,7 +287,7 @@ router.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, asy
 });
 
 // GET: Get single request by ID
-router.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
+router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
@@ -358,40 +350,39 @@ router.get('/health', (req, res) => {
 });
 
 // Chatbot endpoint
-router.post('/api/chat', async (req, res) => {
+router.post('/chat', async (req, res) => {
   const { message: userMessage } = req.body;
   
-  if (!userMessage) {
-    return res.status(400).json({ error: 'Message is required' });
+  if (!openai) {
+    return res.status(500).json({ error: 'Chatbot not initialized' });
   }
 
-  console.log('Chat request received:', userMessage);
-  
   try {
-    // Find the matching intent
-    const matchingIntent = findMatchingIntent(userMessage);
-    
-    // Get a random response from the matching intent
-    const response = matchingIntent.responses[Math.floor(Math.random() * matchingIntent.responses.length)];
-    
-    console.log('Sending response:', response);
-    return res.json({ response });
-    
+    const completion = await openai.chat.completions.create({
+      model: 'anthropic/claude-3-opus-20240229',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful emergency response assistant.'
+        },
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ]
+    });
+
+    res.json({ 
+      response: completion.choices[0].message.content 
+    });
   } catch (error) {
-    console.error('Chatbot error:', {
-      message: error.message,
-      stack: error.stack
-    });
-    
-    res.status(500).json({ 
-      error: 'I apologize, but I am having trouble processing your request right now. Please try again in a few moments.',
-      details: error.message || 'Unknown error occurred'
-    });
+    console.error('Chat error:', error);
+    res.status(500).json({ error: 'Failed to get response from chatbot' });
   }
 });
 
 // User routes
-router.post('/api/users/register', async (req, res) => {
+router.post('/users/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
@@ -427,7 +418,7 @@ router.post('/api/users/register', async (req, res) => {
   }
 });
 
-router.post('/api/users/login', async (req, res) => {
+router.post('/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -466,16 +457,16 @@ router.post('/api/users/login', async (req, res) => {
   }
 });
 
-router.get('/api/users/profile', authenticateToken, async (req, res) => {
+router.get('/users/profile', authenticateToken, async (req, res) => {
   // ... existing code ...
 });
 
-router.put('/api/users/profile', authenticateToken, async (req, res) => {
+router.put('/users/profile', authenticateToken, async (req, res) => {
   // ... existing code ...
 });
 
 // Emergency routes
-router.post('/api/emergencies', authenticateToken, async (req, res) => {
+router.post('/emergencies', authenticateToken, async (req, res) => {
   try {
     const { patient_name, problem_description, age } = req.body;
     
@@ -496,7 +487,7 @@ router.post('/api/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/api/emergencies', authenticateToken, async (req, res) => {
+router.get('/emergencies', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
       'SELECT * FROM emergency_requests WHERE user_id = ? ORDER BY created_at DESC',
@@ -509,23 +500,15 @@ router.get('/api/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.get('/emergencies/:requestId', authenticateToken, async (req, res) => {
   try {
     const [requests] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.requestId]
+      'SELECT * FROM emergency_requests WHERE id = ? AND user_id = ?',
+      [req.params.requestId, req.user.id]
     );
 
     if (requests.length === 0) {
       return res.status(404).json({ error: 'Request not found' });
-    }
-
-    // Check if user is admin or the request owner
-    const isAdmin = req.user.is_admin;
-    const isOwner = requests[0].user_id === req.user.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'Access denied' });
     }
 
     res.json(requests[0]);
@@ -535,54 +518,20 @@ router.get('/api/emergencies/:requestId', authenticateToken, async (req, res) =>
   }
 });
 
-router.put('/api/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.put('/emergencies/:requestId', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['granted', 'dismissed'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
-
-    // If status is granted, get an unused activation code
-    let activationCode = null;
-    if (status === 'granted') {
-      // Get an unused activation code
-      const [codes] = await pool.query(
-        'SELECT code FROM activation_codes WHERE used = FALSE LIMIT 1'
-      );
-
-      if (codes.length === 0) {
-        return res.status(500).json({ error: 'No activation codes available' });
-      }
-
-      activationCode = codes[0].code;
-
-      // Mark the code as used and assign it
-      await pool.query(
-        'UPDATE activation_codes SET used = TRUE, assigned_to = ?, assigned_at = NOW() WHERE code = ?',
-        [req.user.id, activationCode]
-      );
-    }
-
+    
     const [result] = await pool.query(
-      'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
-      [
-        status,
-        status === 'granted' ? activationCode : null,
-        status === 'granted' ? new Date() : null,
-        req.params.requestId
-      ]
+      'UPDATE emergency_requests SET status = ? WHERE id = ? AND user_id = ?',
+      [status, req.params.requestId, req.user.id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-    const [updatedRequest] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.requestId]
-    );
-
-    res.json(updatedRequest[0]);
+    res.json({ message: 'Request updated successfully' });
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ error: 'Failed to update request' });
@@ -590,10 +539,10 @@ router.put('/api/emergencies/:requestId', authenticateToken, async (req, res) =>
 });
 
 // Admin routes
-router.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
+router.get('/admin/emergencies', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [requests] = await pool.query(
-      'SELECT er.*, u.email, u.name as user_name FROM emergency_requests er JOIN users u ON er.user_id = u.id ORDER BY er.created_at DESC'
+      'SELECT * FROM emergency_requests ORDER BY created_at DESC'
     );
     res.json(requests);
   } catch (error) {
@@ -602,54 +551,20 @@ router.get('/api/admin/emergencies', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, res) => {
+router.put('/admin/emergencies/:requestId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['granted', 'dismissed'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
-
-    // If status is granted, get an unused activation code
-    let activationCode = null;
-    if (status === 'granted') {
-      // Get an unused activation code
-      const [codes] = await pool.query(
-        'SELECT code FROM activation_codes WHERE used = FALSE LIMIT 1'
-      );
-
-      if (codes.length === 0) {
-        return res.status(500).json({ error: 'No activation codes available' });
-      }
-
-      activationCode = codes[0].code;
-
-      // Mark the code as used and assign it
-      await pool.query(
-        'UPDATE activation_codes SET used = TRUE, assigned_to = ?, assigned_at = NOW() WHERE code = ?',
-        [req.user.id, activationCode]
-      );
-    }
-
+    
     const [result] = await pool.query(
-      'UPDATE emergency_requests SET status = ?, code = ?, granted_at = ? WHERE id = ?',
-      [
-        status,
-        status === 'granted' ? activationCode : null,
-        status === 'granted' ? new Date() : null,
-        req.params.requestId
-      ]
+      'UPDATE emergency_requests SET status = ? WHERE id = ?',
+      [status, req.params.requestId]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-    const [updatedRequest] = await pool.query(
-      'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.requestId]
-    );
-
-    res.json(updatedRequest[0]);
+    res.json({ message: 'Request updated successfully' });
   } catch (error) {
     console.error('Error updating request:', error);
     res.status(500).json({ error: 'Failed to update request' });
@@ -657,7 +572,7 @@ router.put('/api/admin/emergencies/:requestId', authenticateToken, async (req, r
 });
 
 // POST: Upload driving license
-router.post('/api/upload-license', authenticateToken, async (req, res) => {
+router.post('/upload-license', authenticateToken, async (req, res) => {
   try {
     const { name, license_number, valid_till } = req.body;
     
@@ -698,7 +613,7 @@ router.post('/api/upload-license', authenticateToken, async (req, res) => {
 });
 
 // GET: Get user's driving license status
-router.get('/api/driving-license', authenticateToken, async (req, res) => {
+router.get('/driving-license', authenticateToken, async (req, res) => {
   try {
     // First check if the table exists
     const [tables] = await pool.query(
@@ -739,26 +654,31 @@ router.get('/api/driving-license', authenticateToken, async (req, res) => {
 });
 
 // Test endpoint for OpenRouter
-router.get('/api/test-chat', async (req, res) => {
+router.get('/test-chat', async (req, res) => {
   try {
     console.log('Testing OpenRouter connection...');
     const completion = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1-0528:free",
+      model: 'anthropic/claude-3-opus-20240229',
       messages: [
-        { role: "user", content: "Say hello" }
-      ],
-      max_tokens: 50,
-      temperature: 0.7,
+        {
+          role: 'system',
+          content: 'You are a helpful emergency response assistant.'
+        },
+        {
+          role: 'user',
+          content: 'Hello, are you working?'
+        }
+      ]
     });
-    
-    console.log('OpenRouter test response:', completion);
-    res.json({ response: completion.choices[0].message.content });
+    res.json({ 
+      success: true,
+      response: completion.choices[0].message.content 
+    });
   } catch (error) {
-    console.error('OpenRouter test error:', error);
+    console.error('Test chat error:', error);
     res.status(500).json({ 
-      error: 'OpenRouter test failed',
-      details: error.message,
-      stack: error.stack
+      success: false,
+      error: error.message 
     });
   }
 });
