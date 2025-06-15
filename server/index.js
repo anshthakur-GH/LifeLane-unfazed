@@ -240,7 +240,7 @@ app.get('/api/emergency-requests', authenticateToken, isAdmin, async (req, res) 
 });
 
 // PUT: Update request status (admin only)
-app.put('/api/emergency-requests/:id', authenticateToken, isAdmin, async (req, res) => {
+app.put('/api/emergency-requests/:requestId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['granted', 'dismissed'].includes(status)) {
@@ -274,7 +274,7 @@ app.put('/api/emergency-requests/:id', authenticateToken, isAdmin, async (req, r
         status,
         status === 'granted' ? activationCode : null,
         status === 'granted' ? new Date() : null,
-        req.params.id
+        req.params.requestId
       ]
     );
 
@@ -284,7 +284,7 @@ app.put('/api/emergency-requests/:id', authenticateToken, isAdmin, async (req, r
 
     const [updatedRequest] = await pool.query(
       'SELECT * FROM emergency_requests WHERE id = ?',
-      [req.params.id]
+      [req.params.requestId]
     );
 
     res.json(updatedRequest[0]);
