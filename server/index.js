@@ -38,8 +38,14 @@ let openai = null;
 if (process.env.OPENROUTER_API_KEY) {
   const OpenAI = (await import('openai')).default;
   openai = new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY, // Use OpenRouter API key
-    baseURL: "https://openrouter.ai/api/v1/" // OpenRouter API base URL
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: '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',
+    defaultHeaders: {
+      'Authorization': 'Bearer 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',
+      'HTTP-Referer': 'http://localhost:3000',
+      'X-Title': 'LifeLane',
+      'Content-Type': 'application/json'
+    }
   });
   console.log('OpenRouter chatbot initialized successfully', openai !== null);
 } else {
@@ -312,42 +318,107 @@ app.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Load chatbot intents
+const chatbotIntents = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'chatbot_intents.json'), 'utf8'));
+
 // Chatbot endpoint
-app.post('/api/chatbot', async (req, res) => {
-  console.log('Chatbot endpoint hit.');
-  if (!openai) {
-    console.error('Chatbot service not available: OpenAI instance is null.');
-    return res.status(500).json({ error: 'Chatbot service not available. OpenRouter API key not configured.' });
-  }
-
-  const { message } = req.body;
-
-  if (!message) {
+app.post('/api/chat', async (req, res) => {
+  const { message: userMessage } = req.body;
+  
+  if (!userMessage) {
     return res.status(400).json({ error: 'Message is required' });
   }
 
-  console.log('Attempting to get completion from OpenRouter with message:', message);
+  console.log('Chat request received:', userMessage);
+  
   try {
-    const systemMessage = `You are LifeBot, a professional, helpful, and clear chatbot for LifeLane. Keep responses short (1-2 lines) and direct. No emojis or markdown.`;
+    // Check if the message is a greeting
+    const isGreeting = /^(hi|hello|hey|hii|hiii|hiiii)$/i.test(userMessage.trim());
+    
+    if (isGreeting) {
+      console.log('Greeting detected, returning standard response');
+      return res.json({ 
+        response: "Hello! I'm LifeBot, your emergency response assistant. How can I help you today?"
+      });
+    }
 
+    console.log('Making OpenRouter API call...');
     const completion = await openai.chat.completions.create({
       model: "deepseek/deepseek-r1-0528:free",
       messages: [
-        { role: "system", content: systemMessage },
-        { role: "user", content: message }
+        { 
+          role: "system", 
+          content: `You are LifeBot, a professional and helpful assistant for LifeLane. Your responses must be:
+1. Short and concise (max 2-3 sentences)
+2. Professional but friendly
+3. Focused on emergency response and LifeLane services
+4. Never explain your thinking process
+5. Never use phrases like "I understand" or "I see"
+
+Key points about LifeLane:
+- Turns private cars into emergency vehicles during medical emergencies
+- Emergency requests are verified by admin team
+- Approved requests get a 5-minute siren activation code
+- 24/7 support: lifelanesupport@gmail.com or +91 73938 00862
+- Misuse may result in account suspension or legal action
+
+Example responses:
+User: "How does it work?"
+Assistant: "LifeLane lets you activate emergency sirens on your car during medical emergencies. Submit a request, get verified, and receive a 5-minute activation code."
+
+User: "I need help"
+Assistant: "For immediate assistance, please contact our 24/7 support at +91 73938 00862 or email lifelanesupport@gmail.com."`
+        },
+        { role: "user", content: userMessage }
       ],
-      max_tokens: 100, // Limit response length
-      temperature: 0.7, // Add some randomness but keep it focused
-      presence_penalty: 0.6, // Encourage diverse responses
-      frequency_penalty: 0.3, // Reduce repetition
+      max_tokens: 50,
+      temperature: 0.7
     });
 
-    res.json({
-      response: completion.choices[0].message.content
-    });
+    console.log('OpenRouter response received:', JSON.stringify(completion, null, 2));
+    
+    // Get the message from the completion
+    const assistantMessage = completion?.choices?.[0]?.message;
+    
+    // If we have content, use it
+    if (assistantMessage?.content) {
+      const response = assistantMessage.content.trim();
+      // Remove any reasoning or thinking process from the response
+      const cleanResponse = response.split('\n')[0].trim();
+      console.log('Sending response:', cleanResponse);
+      return res.json({ response: cleanResponse });
+    }
+    
+    // If no content but we have reasoning, use the first line of reasoning
+    if (assistantMessage?.reasoning) {
+      console.log('Using reasoning as fallback');
+      const reasoningLines = assistantMessage.reasoning.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('We are') && !line.startsWith('The user') && !line.startsWith('This is') && !line.startsWith('User said'));
+      
+      if (reasoningLines.length > 0) {
+        const response = reasoningLines[0].trim();
+        console.log('Sending fallback response:', response);
+        return res.json({ response });
+      }
+    }
+    
+    // If we get here, we couldn't get a valid response
+    console.error('Invalid response structure:', JSON.stringify(completion, null, 2));
+    throw new Error('Invalid response structure from OpenRouter');
   } catch (error) {
-    console.error('OpenRouter API error:', error);
-    res.status(500).json({ error: 'Failed to get response from chatbot.' });
+    console.error('OpenRouter API error:', {
+      message: error.message,
+      code: error.code,
+      type: error.type,
+      stack: error.stack,
+      response: error.response?.data
+    });
+    
+    res.status(500).json({ 
+      error: 'Failed to get response from chatbot',
+      details: error.message || 'Unknown error occurred'
+    });
   }
 });
 
@@ -455,70 +526,28 @@ app.get('/api/driving-license', authenticateToken, async (req, res) => {
   }
 });
 
-// POST: Submit contact form message
-app.post('/api/messages', async (req, res) => {
+// Test endpoint for OpenRouter
+app.get('/api/test-chat', async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    console.log('Testing OpenRouter connection...');
+    const completion = await openai.chat.completions.create({
+      model: "deepseek/deepseek-r1-0528:free",
+      messages: [
+        { role: "user", content: "Say hello" }
+      ],
+      max_tokens: 50,
+      temperature: 0.7,
+    });
     
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    // First check if the table exists
-    const [tables] = await pool.query(
-      'SHOW TABLES LIKE "messages"'
-    );
-
-    if (tables.length === 0) {
-      // Table doesn't exist, create it
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS messages (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) NOT NULL,
-          message TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          is_read BOOLEAN DEFAULT FALSE
-        )
-      `);
-    }
-
-    await pool.query(
-      'INSERT INTO messages (name, email, message) VALUES (?, ?, ?)',
-      [name, email, message]
-    );
-
-    res.json({ message: 'Message submitted successfully' });
+    console.log('OpenRouter test response:', completion);
+    res.json({ response: completion.choices[0].message.content });
   } catch (error) {
-    console.error('Error submitting message:', error);
-    res.status(500).json({ error: 'Failed to submit message' });
-  }
-});
-
-// GET: Get all messages (admin only)
-app.get('/api/messages', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    const [messages] = await pool.query(
-      'SELECT * FROM messages ORDER BY created_at DESC'
-    );
-    res.json(messages);
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    res.status(500).json({ error: 'Failed to fetch messages' });
-  }
-});
-
-// PUT: Mark message as read (admin only)
-app.put('/api/messages/:id/read', authenticateToken, isAdmin, async (req, res) => {
-  try {
-    await pool.query(
-      'UPDATE messages SET is_read = TRUE WHERE id = ?',
-      [req.params.id]
-    );
-    res.json({ message: 'Message marked as read' });
-  } catch (error) {
-    console.error('Error marking message as read:', error);
-    res.status(500).json({ error: 'Failed to mark message as read' });
+    console.error('OpenRouter test error:', error);
+    res.status(500).json({ 
+      error: 'OpenRouter test failed',
+      details: error.message,
+      stack: error.stack
+    });
   }
 });
 

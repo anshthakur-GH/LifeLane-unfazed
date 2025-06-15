@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, CheckCircle, XCircle, Key, Mail } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Eye, CheckCircle, XCircle, Key } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminPanel: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
@@ -119,18 +119,7 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="pt-16 min-h-screen bg-bg-light">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-header">Admin Panel - Emergency Requests</h1>
-          <div className="flex gap-4">
-            <Link
-              to="/adminpanel/messages"
-              className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
-            >
-              <Mail className="w-5 h-5 mr-2" />
-              View Messages
-            </Link>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-header mb-8">Admin Panel - Emergency Requests</h1>
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <h2 className="text-2xl font-bold text-header mb-6">All Emergency Requests</h2>
           <div className="space-y-4">
@@ -224,10 +213,6 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
         )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Remove the Contact Messages card */}
-        </div>
       </div>
     </div>
   );

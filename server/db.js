@@ -47,18 +47,6 @@ async function initializeDatabase() {
       )
     `);
 
-    // Create messages table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_read BOOLEAN DEFAULT FALSE
-      )
-    `);
-
     // Create admin user if not exists
     const [adminExists] = await pool.query(
       'SELECT * FROM users WHERE email = ?',
