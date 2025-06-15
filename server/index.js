@@ -299,7 +299,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
     userId: req.user.id,
     hasMessage: !!userMessage,
     openaiInitialized: !!openai,
-    hasApiKey: !!OPENROUTER_API_KEY
+    hasApiKey: !!OPENROUTER_API_KEY,
+    nodeEnv: process.env.NODE_ENV
   });
 
   if (!openai) {
@@ -317,7 +318,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
   try {
     console.log('Preparing OpenRouter API request...', {
-      model: 'anthropic/claude-3-opus-20240229',
+      model: 'anthropic/claude-3-sonnet-20240229',
       messageLength: userMessage.length,
       headers: {
         ...openai.defaultHeaders,
@@ -326,7 +327,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'anthropic/claude-3-opus-20240229',
+      model: 'anthropic/claude-3-sonnet-20240229',
       messages: [
         {
           role: 'system',
@@ -367,7 +368,8 @@ router.post('/chat', authenticateToken, async (req, res) => {
       config: {
         baseURL: openai.baseURL,
         hasApiKey: !!OPENROUTER_API_KEY,
-        apiKeyLength: OPENROUTER_API_KEY?.length
+        apiKeyLength: OPENROUTER_API_KEY?.length,
+        nodeEnv: process.env.NODE_ENV
       }
     });
 
@@ -715,7 +717,9 @@ router.get('/test-chat-config', (req, res) => {
     apiKeyLength: OPENROUTER_API_KEY ? OPENROUTER_API_KEY.length : 0,
     hasOpenAI: !!openai,
     appUrl: process.env.APP_URL || 'https://lifelane-unfazed.onrender.com',
-    headers: openai ? openai.defaultHeaders : null
+    headers: openai ? openai.defaultHeaders : null,
+    nodeEnv: process.env.NODE_ENV,
+    baseURL: openai ? openai.baseURL : null
   };
   
   console.log('Chat configuration:', config);
