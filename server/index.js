@@ -87,7 +87,7 @@ const authenticateToken = (req, res, next) => {
     jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) {
         console.error('Token verification failed:', err.message);
-        return res.status(403).json({ error: 'Invalid token' });
+        return res.status(401).json({ error: 'Invalid token' });
       }
       console.log('Token verified for user:', user.id);
       req.user = user;
@@ -95,7 +95,7 @@ const authenticateToken = (req, res, next) => {
     });
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json({ error: 'Authentication failed', details: error.message });
+    res.status(401).json({ error: 'Authentication failed', details: error.message });
   }
 };
 
@@ -360,7 +360,13 @@ router.post('/chat', authenticateToken, async (req, res) => {
       code: error.code,
       user: req.user.id,
       response: error.response?.data,
-      headers: error.response?.headers
+      headers: error.response?.headers,
+      config: {
+        baseURL: openai.baseURL,
+        hasApiKey: !!OPENROUTER_API_KEY,
+        apiKeyLength: OPENROUTER_API_KEY?.length,
+        nodeEnv: process.env.NODE_ENV
+      }
     });
 
     // Handle specific OpenRouter API errors
