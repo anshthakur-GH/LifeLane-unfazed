@@ -273,26 +273,25 @@ router.get('/emergency-requests/:id', authenticateToken, async (req, res) => {
 // Function to match user input against patterns
 function matchIntent(message, intents) {
   const msg = message.toLowerCase().trim();
+  console.log('Matching message:', msg);
   
   // First check for exact matches
   for (const intent of intents) {
-    if (intent.patterns.some(pattern => 
-      pattern.toLowerCase() === msg || 
-      msg.includes(pattern.toLowerCase())
-    )) {
-      return intent.responses[Math.floor(Math.random() * intent.responses.length)];
+    console.log('Checking intent:', intent.tag);
+    for (const pattern of intent.patterns) {
+      const patternLower = pattern.toLowerCase();
+      console.log('Checking pattern:', patternLower);
+      
+      if (msg === patternLower || msg.includes(patternLower)) {
+        console.log('Found match:', patternLower);
+        const response = intent.responses[Math.floor(Math.random() * intent.responses.length)];
+        console.log('Selected response:', response);
+        return response;
+      }
     }
   }
   
-  // Then check for partial matches
-  for (const intent of intents) {
-    if (intent.patterns.some(pattern => 
-      msg.includes(pattern.toLowerCase())
-    )) {
-      return intent.responses[Math.floor(Math.random() * intent.responses.length)];
-    }
-  }
-  
+  console.log('No match found, falling back to OpenRouter');
   return null;
 }
 
@@ -308,10 +307,11 @@ router.post('/chat', authenticateToken, async (req, res) => {
   // Log the incoming request
   console.log('Chat request received:', {
     userId: req.user.id,
-    hasMessage: !!userMessage,
+    message: userMessage,
     openaiInitialized: !!openai,
     hasApiKey: !!OPENROUTER_API_KEY,
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    intentsLoaded: intents.length > 0
   });
 
   if (!userMessage) {

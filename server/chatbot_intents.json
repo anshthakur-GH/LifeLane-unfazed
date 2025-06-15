@@ -8,7 +8,11 @@
         "hey",
         "good morning",
         "good afternoon",
-        "good evening"
+        "good evening",
+        "greetings",
+        "hi there",
+        "hello there",
+        "hey there"
       ],
       "responses": [
         "Hello! I'm your LifeLane emergency response assistant. How can I help you today?",
@@ -24,7 +28,16 @@
         "urgent",
         "critical",
         "immediate assistance",
-        "need help now"
+        "need help now",
+        "emergency help",
+        "need emergency",
+        "urgent help",
+        "critical situation",
+        "emergency situation",
+        "need assistance",
+        "help me",
+        "help needed",
+        "emergency assistance"
       ],
       "responses": [
         "I understand this is an emergency. Please use the emergency request form to submit your details. Our team will respond immediately.",
@@ -40,7 +53,16 @@
         "make request",
         "file request",
         "create request",
-        "new request"
+        "new request",
+        "how do i submit",
+        "how can i submit",
+        "submit emergency",
+        "create emergency request",
+        "make emergency request",
+        "file emergency request",
+        "how to create request",
+        "how to make request",
+        "how to file request"
       ],
       "responses": [
         "To submit an emergency request, click on the 'Emergency Request' button and fill out the form with the required details.",
@@ -56,7 +78,16 @@
         "request status",
         "track request",
         "where is my request",
-        "request update"
+        "request update",
+        "check my request",
+        "request tracking",
+        "my request status",
+        "track my request",
+        "where's my request",
+        "request progress",
+        "check progress",
+        "request location",
+        "request whereabouts"
       ],
       "responses": [
         "You can check your request status in the 'My Requests' section. All your submitted requests will be listed there.",
@@ -72,7 +103,16 @@
         "customer service",
         "support team",
         "get help",
-        "talk to someone"
+        "talk to someone",
+        "contact help",
+        "support contact",
+        "customer support",
+        "technical support",
+        "reach support",
+        "support number",
+        "support email",
+        "help contact",
+        "contact customer service"
       ],
       "responses": [
         "For support, you can contact our help desk at support@lifelane.com or call our 24/7 support line.",
@@ -88,7 +128,16 @@
         "see you",
         "thank you",
         "thanks",
-        "that's all"
+        "that's all",
+        "thank you bye",
+        "thanks bye",
+        "goodbye thanks",
+        "bye thanks",
+        "thank you goodbye",
+        "thanks goodbye",
+        "appreciate it",
+        "thank you so much",
+        "thanks a lot"
       ],
       "responses": [
         "Thank you for using LifeLane. Stay safe!",
