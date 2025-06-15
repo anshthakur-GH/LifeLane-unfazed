@@ -9,10 +9,26 @@ const Contact = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle sending the form data (e.g., to an API or email service)
-    setSubmitted(true);
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit message');
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting message:', error);
+      alert('Failed to submit message. Please try again.');
+    }
   };
 
   return (

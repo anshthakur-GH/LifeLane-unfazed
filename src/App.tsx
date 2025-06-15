@@ -14,6 +14,7 @@ import { ChatBot } from './components/ChatBot';
 import { Status } from './pages/Status';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
+import Messages from './pages/Messages';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
                 <AdminPanel />
               </ProtectedRoute>
             } />
+            <Route path="/adminpanel/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />

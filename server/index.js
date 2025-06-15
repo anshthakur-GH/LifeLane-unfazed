@@ -455,6 +455,73 @@ app.get('/api/driving-license', authenticateToken, async (req, res) => {
   }
 });
 
+// POST: Submit contact form message
+app.post('/api/messages', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // First check if the table exists
+    const [tables] = await pool.query(
+      'SHOW TABLES LIKE "messages"'
+    );
+
+    if (tables.length === 0) {
+      // Table doesn't exist, create it
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS messages (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          email VARCHAR(255) NOT NULL,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          is_read BOOLEAN DEFAULT FALSE
+        )
+      `);
+    }
+
+    await pool.query(
+      'INSERT INTO messages (name, email, message) VALUES (?, ?, ?)',
+      [name, email, message]
+    );
+
+    res.json({ message: 'Message submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting message:', error);
+    res.status(500).json({ error: 'Failed to submit message' });
+  }
+});
+
+// GET: Get all messages (admin only)
+app.get('/api/messages', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [messages] = await pool.query(
+      'SELECT * FROM messages ORDER BY created_at DESC'
+    );
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// PUT: Mark message as read (admin only)
+app.put('/api/messages/:id/read', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE messages SET is_read = TRUE WHERE id = ?',
+      [req.params.id]
+    );
+    res.json({ message: 'Message marked as read' });
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    res.status(500).json({ error: 'Failed to mark message as read' });
+  }
+});
+
 // Initialize database and start server
 initializeDatabase().then(() => {
   app.listen(port, () => {
