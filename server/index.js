@@ -10,6 +10,7 @@ import { pool, initializeDatabase } from './db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { intents } from './chatbot_intents.js';
 
 // Load environment variables
 dotenv.config();
@@ -35,13 +36,15 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Initialize OpenAI only if API key is available
 let openai = null;
-if (process.env.OPENROUTER_API_KEY) {
+const OPENROUTER_API_KEY = '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';
+
+if (OPENROUTER_API_KEY) {
   const OpenAI = (await import('openai')).default;
   openai = new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: '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',
+    apiKey: OPENROUTER_API_KEY,
     defaultHeaders: {
-      'Authorization': 'Bearer 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',
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'http://localhost:3000',
       'X-Title': 'LifeLane',
       'Content-Type': 'application/json'
@@ -49,7 +52,7 @@ if (process.env.OPENROUTER_API_KEY) {
   });
   console.log('OpenRouter chatbot initialized successfully', openai !== null);
 } else {
-  console.log('OpenRouter chatbot not initialized - API key not provided or environment variable name is incorrect');
+  console.log('OpenRouter chatbot not initialized - API key not provided');
 }
 
 // Middleware
@@ -321,6 +324,37 @@ app.get('/api/emergency-requests/:id', authenticateToken, async (req, res) => {
 // Load chatbot intents
 const chatbotIntents = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'chatbot_intents.json'), 'utf8'));
 
+// Function to find the best matching intent
+function findMatchingIntent(message) {
+  const lowerMessage = message.toLowerCase().trim();
+  
+  // First check for exact matches
+  for (const intent of intents) {
+    if (intent.patterns.some(pattern => 
+      pattern.toLowerCase() === lowerMessage || 
+      lowerMessage.includes(pattern.toLowerCase())
+    )) {
+      return intent;
+    }
+  }
+  
+  // Then check for partial matches
+  for (const intent of intents) {
+    if (intent.patterns.some(pattern => 
+      lowerMessage.includes(pattern.toLowerCase())
+    )) {
+      return intent;
+    }
+  }
+  
+  // If no match found, return the default response
+  return {
+    tag: "default",
+    patterns: [],
+    responses: ["I'm not sure I understand. Could you please rephrase your question?"]
+  };
+}
+
 // Chatbot endpoint
 app.post('/api/chat', async (req, res) => {
   const { message: userMessage } = req.body;
@@ -332,91 +366,23 @@ app.post('/api/chat', async (req, res) => {
   console.log('Chat request received:', userMessage);
   
   try {
-    // Check if the message is a greeting
-    const isGreeting = /^(hi|hello|hey|hii|hiii|hiiii)$/i.test(userMessage.trim());
+    // Find the matching intent
+    const matchingIntent = findMatchingIntent(userMessage);
     
-    if (isGreeting) {
-      console.log('Greeting detected, returning standard response');
-      return res.json({ 
-        response: "Hello! I'm LifeBot, your emergency response assistant. How can I help you today?"
-      });
-    }
-
-    console.log('Making OpenRouter API call...');
-    const completion = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1-0528:free",
-      messages: [
-        { 
-          role: "system", 
-          content: `You are LifeBot, a professional and helpful assistant for LifeLane. Your responses must be:
-1. Short and concise (max 2-3 sentences)
-2. Professional but friendly
-3. Focused on emergency response and LifeLane services
-4. Never explain your thinking process
-5. Never use phrases like "I understand" or "I see"
-
-Key points about LifeLane:
-- Turns private cars into emergency vehicles during medical emergencies
-- Emergency requests are verified by admin team
-- Approved requests get a 5-minute siren activation code
-- 24/7 support: lifelanesupport@gmail.com or +91 73938 00862
-- Misuse may result in account suspension or legal action
-
-Example responses:
-User: "How does it work?"
-Assistant: "LifeLane lets you activate emergency sirens on your car during medical emergencies. Submit a request, get verified, and receive a 5-minute activation code."
-
-User: "I need help"
-Assistant: "For immediate assistance, please contact our 24/7 support at +91 73938 00862 or email lifelanesupport@gmail.com."`
-        },
-        { role: "user", content: userMessage }
-      ],
-      max_tokens: 50,
-      temperature: 0.7
-    });
-
-    console.log('OpenRouter response received:', JSON.stringify(completion, null, 2));
+    // Get a random response from the matching intent
+    const response = matchingIntent.responses[Math.floor(Math.random() * matchingIntent.responses.length)];
     
-    // Get the message from the completion
-    const assistantMessage = completion?.choices?.[0]?.message;
+    console.log('Sending response:', response);
+    return res.json({ response });
     
-    // If we have content, use it
-    if (assistantMessage?.content) {
-      const response = assistantMessage.content.trim();
-      // Remove any reasoning or thinking process from the response
-      const cleanResponse = response.split('\n')[0].trim();
-      console.log('Sending response:', cleanResponse);
-      return res.json({ response: cleanResponse });
-    }
-    
-    // If no content but we have reasoning, use the first line of reasoning
-    if (assistantMessage?.reasoning) {
-      console.log('Using reasoning as fallback');
-      const reasoningLines = assistantMessage.reasoning.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('We are') && !line.startsWith('The user') && !line.startsWith('This is') && !line.startsWith('User said'));
-      
-      if (reasoningLines.length > 0) {
-        const response = reasoningLines[0].trim();
-        console.log('Sending fallback response:', response);
-        return res.json({ response });
-      }
-    }
-    
-    // If we get here, we couldn't get a valid response
-    console.error('Invalid response structure:', JSON.stringify(completion, null, 2));
-    throw new Error('Invalid response structure from OpenRouter');
   } catch (error) {
-    console.error('OpenRouter API error:', {
+    console.error('Chatbot error:', {
       message: error.message,
-      code: error.code,
-      type: error.type,
-      stack: error.stack,
-      response: error.response?.data
+      stack: error.stack
     });
     
     res.status(500).json({ 
-      error: 'Failed to get response from chatbot',
+      error: 'I apologize, but I am having trouble processing your request right now. Please try again in a few moments.',
       details: error.message || 'Unknown error occurred'
     });
   }
