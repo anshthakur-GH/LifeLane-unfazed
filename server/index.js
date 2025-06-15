@@ -294,6 +294,14 @@ router.get('/health', (req, res) => {
 router.post('/chat', authenticateToken, async (req, res) => {
   const { message: userMessage } = req.body;
   
+  // Log the incoming request
+  console.log('Chat request received:', {
+    userId: req.user.id,
+    hasMessage: !!userMessage,
+    openaiInitialized: !!openai,
+    hasApiKey: !!OPENROUTER_API_KEY
+  });
+
   if (!openai) {
     console.error('Chatbot not initialized - OpenAI instance is null');
     return res.status(500).json({ 
@@ -308,10 +316,13 @@ router.post('/chat', authenticateToken, async (req, res) => {
   }
 
   try {
-    console.log('Sending request to OpenRouter API...', {
-      user: req.user.id,
-      message: userMessage,
-      headers: openai.defaultHeaders
+    console.log('Preparing OpenRouter API request...', {
+      model: 'anthropic/claude-3-opus-20240229',
+      messageLength: userMessage.length,
+      headers: {
+        ...openai.defaultHeaders,
+        apiKey: '***' // Masked for security
+      }
     });
 
     const completion = await openai.chat.completions.create({
@@ -343,6 +354,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
       response: completion.choices[0].message.content 
     });
   } catch (error) {
+    // Enhanced error logging
     console.error('Chat error details:', {
       message: error.message,
       status: error.status,
@@ -350,7 +362,13 @@ router.post('/chat', authenticateToken, async (req, res) => {
       code: error.code,
       user: req.user.id,
       stack: error.stack,
-      response: error.response?.data
+      response: error.response?.data,
+      headers: error.response?.headers,
+      config: {
+        baseURL: openai.baseURL,
+        hasApiKey: !!OPENROUTER_API_KEY,
+        apiKeyLength: OPENROUTER_API_KEY?.length
+      }
     });
 
     // Handle specific OpenRouter API errors
@@ -371,7 +389,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     }
 
     // Log the full error for debugging
-    console.error('Full error object:', error);
+    console.error('Full error object:', JSON.stringify(error, null, 2));
 
     res.status(500).json({ 
       error: 'Failed to get response from chatbot',
