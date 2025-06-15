@@ -275,15 +275,29 @@ function matchIntent(message, intents) {
   const msg = message.toLowerCase().trim();
   console.log('Matching message:', msg);
   
-  // First check for exact matches
+  // First try exact matches
   for (const intent of intents) {
     console.log('Checking intent:', intent.tag);
     for (const pattern of intent.patterns) {
       const patternLower = pattern.toLowerCase();
-      console.log('Checking pattern:', patternLower);
-      
-      if (msg === patternLower || msg.includes(patternLower)) {
-        console.log('Found match:', patternLower);
+      if (msg === patternLower) {
+        console.log('Found exact match:', patternLower);
+        const response = intent.responses[Math.floor(Math.random() * intent.responses.length)];
+        console.log('Selected response:', response);
+        return response;
+      }
+    }
+  }
+  
+  // Then try partial matches
+  for (const intent of intents) {
+    console.log('Checking intent for partial match:', intent.tag);
+    for (const pattern of intent.patterns) {
+      const patternLower = pattern.toLowerCase();
+      // Check if the pattern is a complete word in the message
+      const words = msg.split(/\s+/);
+      if (words.includes(patternLower) || msg.includes(patternLower)) {
+        console.log('Found partial match:', patternLower);
         const response = intent.responses[Math.floor(Math.random() * intent.responses.length)];
         console.log('Selected response:', response);
         return response;
