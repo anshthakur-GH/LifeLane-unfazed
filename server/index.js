@@ -703,9 +703,7 @@ router.use((err, req, res, next) => {
 
 // Initialize database and start server
 initializeDatabase().then(() => {
-  router.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+  console.log(`Server running on port ${port}`);
 }).catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
