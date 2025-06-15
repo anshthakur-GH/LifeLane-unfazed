@@ -45,21 +45,31 @@ export const ChatBot: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
+        navigate('/login');
         throw new Error('Authentication required');
       }
+
+      console.log('Sending chat request with token:', token.substring(0, 10) + '...');
 
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ message: userMessage }),
         signal: abortControllerRef.current.signal
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Chat response error:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData
+        });
+
         if (res.status === 401 || res.status === 403) {
           // Handle authentication errors
           localStorage.removeItem('token');

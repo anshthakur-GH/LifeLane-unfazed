@@ -62,20 +62,35 @@ router.use(bodyParser.urlencoded({ extended: true }));
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  try {
+    const authHeader = req.headers['authorization'];
+    console.log('Auth header:', authHeader);
 
-  if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
+    if (!authHeader) {
+      console.error('No authorization header found');
+      return res.status(401).json({ error: 'No authorization header found' });
     }
-    req.user = user;
-    next();
-  });
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      console.error('No token found in authorization header');
+      return res.status(401).json({ error: 'No token found in authorization header' });
+    }
+
+    console.log('Verifying token...');
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        console.error('Token verification failed:', err.message);
+        return res.status(403).json({ error: 'Invalid token' });
+      }
+      console.log('Token verified for user:', user.id);
+      req.user = user;
+      next();
+    });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(500).json({ error: 'Authentication failed', details: error.message });
+  }
 };
 
 // Admin middleware
