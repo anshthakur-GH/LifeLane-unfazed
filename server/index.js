@@ -673,4 +673,5 @@ process.on('unhandledRejection', (reason, promise) => {
   // process.exit(1); // Exit with a failure code to allow process managers to restart
 });
 
+// Export the router
 export { router }; 
