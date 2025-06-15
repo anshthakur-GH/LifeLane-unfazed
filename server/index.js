@@ -97,83 +97,6 @@ router.get('/test-db', async (req, res) => {
   }
 });
 
-// Register new user
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-    
-    // Check if user already exists
-    const [existingUsers] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
-
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert new user
-    const [result] = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-      [email, hashedPassword, name]
-    );
-
-    // Generate token
-    const token = jwt.sign(
-      { id: result.insertId, email, is_admin: false },
-      JWT_SECRET
-    );
-
-    res.json({ token });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
-
-// Login user
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Find user
-    const [users] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const user = users[0];
-
-    // Verify password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, is_admin: user.is_admin },
-      JWT_SECRET
-    );
-
-    res.json({ 
-      token, 
-      is_admin: user.is_admin,
-      name: user.name 
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
 // POST: Save new emergency request
 router.post('/emergency-request', authenticateToken, async (req, res) => {
   try {
@@ -406,6 +329,10 @@ router.post('/users/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
     
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
     // Check if user already exists
     const [existingUsers] = await pool.query(
       'SELECT * FROM users WHERE email = ?',
@@ -434,13 +361,17 @@ router.post('/users/register', async (req, res) => {
     res.json({ token });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: 'Registration failed', details: error.message });
   }
 });
 
 router.post('/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
     // Find user
     const [users] = await pool.query(
@@ -473,7 +404,7 @@ router.post('/users/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Login failed', details: error.message });
   }
 });
 

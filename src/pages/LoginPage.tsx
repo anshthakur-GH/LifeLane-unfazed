@@ -35,12 +35,16 @@ export const LoginPage: React.FC = () => {
           return;
         }
 
-        const res = await fetch(`${API_URL}/api/register`, {
+        const res = await fetch(`${API_URL}/api/users/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            name: formData.fullName
+          }),
         });
 
         const data = await res.json();
@@ -53,12 +57,15 @@ export const LoginPage: React.FC = () => {
         localStorage.setItem('user_name', formData.fullName);
         navigate('/dashboard');
       } else if (activeTab === 'login') {
-        const res = await fetch(`${API_URL}/api/login`, {
+        const res = await fetch(`${API_URL}/api/users/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          }),
         });
 
         const data = await res.json();
@@ -75,12 +82,15 @@ export const LoginPage: React.FC = () => {
           navigate('/dashboard');
         }
       } else if (activeTab === 'admin') {
-        const res = await fetch(`${API_URL}/api/login`, {
+        const res = await fetch(`${API_URL}/api/users/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          }),
         });
 
         const data = await res.json();
