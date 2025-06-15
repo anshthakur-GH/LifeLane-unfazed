@@ -44,7 +44,6 @@ if (OPENROUTER_API_KEY) {
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: OPENROUTER_API_KEY,
     defaultHeaders: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       'HTTP-Referer': 'https://lifelane-unfazed.onrender.com',
       'X-Title': 'LifeLane',
       'Content-Type': 'application/json'
@@ -335,8 +334,18 @@ router.post('/chat', authenticateToken, async (req, res) => {
       status: error.status,
       type: error.type,
       code: error.code,
-      user: req.user.id
+      user: req.user.id,
+      stack: error.stack
     });
+
+    // Handle specific OpenRouter API errors
+    if (error.status === 401) {
+      return res.status(500).json({ 
+        error: 'Chatbot authentication failed',
+        details: 'Unable to authenticate with the AI service'
+      });
+    }
+
     res.status(500).json({ 
       error: 'Failed to get response from chatbot',
       details: error.message

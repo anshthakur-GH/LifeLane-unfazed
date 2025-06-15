@@ -62,12 +62,13 @@ export const ChatBot: React.FC = () => {
         signal: abortControllerRef.current.signal
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
         console.error('Chat response error:', {
           status: res.status,
           statusText: res.statusText,
-          error: errorData
+          error: data
         });
 
         if (res.status === 401 || res.status === 403) {
@@ -78,10 +79,15 @@ export const ChatBot: React.FC = () => {
           navigate('/login');
           throw new Error('Please log in to continue');
         }
-        throw new Error(errorData.details || errorData.error || 'Failed to get response');
+
+        // Handle specific error messages
+        if (data.error === 'Chatbot authentication failed') {
+          throw new Error('The chatbot service is currently unavailable. Please try again later.');
+        }
+
+        throw new Error(data.details || data.error || 'Failed to get response');
       }
 
-      const data = await res.json();
       if (!data.response) {
         throw new Error('No response received from chatbot');
       }
@@ -98,7 +104,7 @@ export const ChatBot: React.FC = () => {
         role: 'assistant', 
         content: error.message === 'Authentication required' || error.message === 'Please log in to continue'
           ? "Please log in to use the chatbot."
-          : "I'm sorry, I'm having trouble connecting right now. Please try again later."
+          : error.message || "I'm sorry, I'm having trouble connecting right now. Please try again later."
       }]);
     } finally {
       setIsLoading(false);
