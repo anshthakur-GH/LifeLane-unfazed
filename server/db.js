@@ -5,7 +5,8 @@ import bcrypt from 'bcrypt';
 // Load environment variables
 dotenv.config();
 
-const pool = mysql.createPool({
+// Database configuration
+const dbConfig = {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
@@ -13,11 +14,45 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
-});
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
+};
+
+// Create connection pool
+const pool = mysql.createPool(dbConfig);
+
+// Test database connection
+async function testConnection() {
+  try {
+    const connection = await pool.getConnection();
+    connection.release();
+    console.log('Database connection successful');
+    return true;
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    return false;
+  }
+}
 
 // Initialize database tables
 async function initializeDatabase() {
+  let retries = 5;
+  let connected = false;
+
+  while (retries > 0 && !connected) {
+    connected = await testConnection();
+    if (!connected) {
+      console.log(`Retrying database connection... (${retries} attempts remaining)`);
+      retries--;
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
+    }
+  }
+
+  if (!connected) {
+    throw new Error('Failed to connect to database after multiple attempts');
+  }
+
   try {
     // Create users table
     await pool.query(`
@@ -70,5 +105,14 @@ async function initializeDatabase() {
     throw error;
   }
 }
+
+// Handle database connection errors
+pool.on('error', (err) => {
+  console.error('Database error:', err);
+  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+    console.log('Attempting to reconnect to database...');
+    initializeDatabase().catch(console.error);
+  }
+});
 
 export { pool, initializeDatabase }; 
