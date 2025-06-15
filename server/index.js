@@ -305,8 +305,9 @@ function matchIntent(message, intents) {
     }
   }
   
-  console.log('No match found, falling back to OpenRouter');
-  return null;
+  // If no match found, return a default response
+  console.log('No match found, using default response');
+  return "I'm not sure I understand. Could you please rephrase your question? You can ask me about emergency requests, how to submit a request, check request status, or contact support.";
 }
 
 // Routes
@@ -322,9 +323,6 @@ router.post('/chat', authenticateToken, async (req, res) => {
   console.log('Chat request received:', {
     userId: req.user.id,
     message: userMessage,
-    openaiInitialized: !!openai,
-    hasApiKey: !!OPENROUTER_API_KEY,
-    nodeEnv: process.env.NODE_ENV,
     intentsLoaded: intents.length > 0
   });
 
@@ -334,93 +332,15 @@ router.post('/chat', authenticateToken, async (req, res) => {
   }
 
   try {
-    // First try to match against intents
+    // Match against intents
     const matchedResponse = matchIntent(userMessage, intents);
-    if (matchedResponse) {
-      console.log('Found matching intent response');
-      return res.json({ response: matchedResponse });
-    }
-
-    // If no match found, use OpenRouter API
-    if (!openai) {
-      console.error('Chatbot not initialized - OpenAI instance is null');
-      return res.status(500).json({ 
-        error: 'Chatbot service unavailable',
-        details: 'The chatbot service is not properly configured. Please contact support.'
-      });
-    }
-
-    console.log('No intent match found, using OpenRouter API...');
-    const completion = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-r1-0528:free',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful emergency response assistant for LifeLane. You help users understand how to use the emergency request system and provide guidance during medical emergencies.'
-        },
-        {
-          role: 'user',
-          content: userMessage
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-      stream: false
-    });
-
-    if (!completion.choices || completion.choices.length === 0) {
-      console.error('No response received from OpenRouter API');
-      return res.status(500).json({ 
-        error: 'No response from chatbot',
-        details: 'The AI service did not return a valid response'
-      });
-    }
-
-    console.log('Successfully received response from OpenRouter API');
-    res.json({ 
-      response: completion.choices[0].message.content 
-    });
+    console.log('Sending response:', matchedResponse);
+    res.json({ response: matchedResponse });
   } catch (error) {
-    // Enhanced error logging
-    console.error('Chat error details:', {
-      message: error.message,
-      status: error.status,
-      type: error.type,
-      code: error.code,
-      user: req.user.id,
-      response: error.response?.data,
-      headers: error.response?.headers,
-      config: {
-        baseURL: openai.baseURL,
-        hasApiKey: !!OPENROUTER_API_KEY,
-        apiKeyLength: OPENROUTER_API_KEY?.length,
-        nodeEnv: process.env.NODE_ENV
-      }
-    });
-
-    // Handle specific OpenRouter API errors
-    if (error.status === 401) {
-      console.error('OpenRouter authentication failed:', error.response?.data);
-      return res.status(500).json({ 
-        error: 'Chatbot authentication failed',
-        details: 'Unable to authenticate with the AI service. Please contact support.'
-      });
-    }
-
-    if (error.status === 429) {
-      console.error('OpenRouter rate limit exceeded:', error.response?.data);
-      return res.status(500).json({ 
-        error: 'Rate limit exceeded',
-        details: 'The chatbot service is currently busy. Please try again in a few moments.'
-      });
-    }
-
-    // Log the full error for debugging
-    console.error('Full error object:', JSON.stringify(error, null, 2));
-
+    console.error('Chat error:', error);
     res.status(500).json({ 
-      error: 'Failed to get response from chatbot',
-      details: error.message || 'An unexpected error occurred'
+      error: 'Failed to process message',
+      details: 'An error occurred while processing your message. Please try again.'
     });
   }
 });
