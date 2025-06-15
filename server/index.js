@@ -114,7 +114,10 @@ router.get('/test-db', async (req, res) => {
     res.json({ success: true, result });
   } catch (error) {
     console.error('Database test error:', error);
-    res.status(500).json({ error: 'Database connection failed' });
+    res.status(500).json({ 
+      error: 'Database connection failed',
+      details: error.message
+    });
   }
 });
 
@@ -440,8 +443,10 @@ router.post('/users/register', async (req, res) => {
 router.post('/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt for:', email);
 
     if (!email || !password) {
+      console.error('Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
@@ -452,6 +457,7 @@ router.post('/users/login', async (req, res) => {
     );
 
     if (users.length === 0) {
+      console.error('User not found:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -460,15 +466,18 @@ router.post('/users/login', async (req, res) => {
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      console.error('Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate token
     const token = jwt.sign(
       { id: user.id, email: user.email, is_admin: user.is_admin },
-      JWT_SECRET
+      JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
+    console.log('Login successful for:', email);
     res.json({ 
       token, 
       is_admin: user.is_admin,
@@ -476,7 +485,10 @@ router.post('/users/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed', details: error.message });
+    res.status(500).json({ 
+      error: 'Login failed', 
+      details: error.message 
+    });
   }
 });
 
