@@ -26,7 +26,7 @@ LifeLane is a digital emergency response platform enabling users to transform th
 2. Install dependencies for both frontend and backend:
    ```bash
    npm install
-   cd server && npm install
+   cd server; npm install
    ```
 
 𝗔𝗣𝗜 𝗞𝗲𝘆𝘀 𝗦𝗲𝘁𝘂𝗽
