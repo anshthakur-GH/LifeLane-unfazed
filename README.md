@@ -1,23 +1,23 @@
-# LifeLane
+LifeLane
 
-## Project Description
+Project Description
 LifeLane is a digital emergency response platform enabling users to transform their private vehicles into emergency transport by requesting verified siren activation codes. The platform features a user dashboard, emergency request form, admin panel for manual approval, and an AI-powered chatbot assistant.
 
-## Features
+Features
 - Submit emergency requests with patient information
 - Admin approval and secure one-time siren code generation
 - User dashboard for request history and code status
 - AI chatbot assistant (intent-based, OpenRouter fallback)
 - Backend data storage in JSON files
 
-## Technologies Used
+Technologies Used
 - **Frontend:** React, Tailwind CSS
 - **Backend:** Node.js, Express
 - **AI:** OpenRouter API (DeepSeek model)
 - **Hosting:** Render
 - **Data:** JSON file-based storage (`chatbot_intents.json`, `emergency_requests.json`)
 
-## Installation Instructions
+Installation Instructions
 1. Clone the repository:
    ```bash
    git clone <repo-url>
@@ -29,7 +29,7 @@ LifeLane is a digital emergency response platform enabling users to transform th
    cd server && npm install
    ```
 
-## API Keys Setup
+API Keys Setup
 - Create a `.env` file in the root and `server/` directories as needed.
 - Add your OpenRouter API key:
   ```env
@@ -37,7 +37,7 @@ LifeLane is a digital emergency response platform enabling users to transform th
   ```
 - Add any other required environment variables (see code for details).
 
-## Running the Project Locally
+Running the Project Locally
 1. Build the frontend:
    ```bash
    npm run build
@@ -48,10 +48,7 @@ LifeLane is a digital emergency response platform enabling users to transform th
    ```
 3. Access the app at [http://localhost:10000](http://localhost:10000)
 
-## Deployment Info
+Deployment Info
 - Deployed on [Render](https://render.com/)
 - Configuration files: `render.yaml`, `Procfile`
 
-## License
-
-MIT License. See [LICENSE](LICENSE) for details. 
