@@ -616,6 +616,7 @@ router.get('/driving-license', authenticateToken, async (req, res) => {
           user_id INT NOT NULL,
           license_name VARCHAR(255) NOT NULL,
           license_number VARCHAR(50) NOT NULL,
+          vehicle_number VARCHAR(20) NOT NULL,
           license_valid_till DATE NOT NULL,
           license_uploaded BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -623,6 +624,20 @@ router.get('/driving-license', authenticateToken, async (req, res) => {
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `);
+    } else {
+      // Check if vehicle_number column exists
+      try {
+        await pool.query(`
+          ALTER TABLE driving_licenses
+          ADD COLUMN vehicle_number VARCHAR(20) NOT NULL
+        `);
+        console.log('Added vehicle_number column to driving_licenses table');
+      } catch (error) {
+        // Column might already exist, which is fine
+        if (!error.message.includes('Duplicate column name')) {
+          console.error('Error adding vehicle_number column:', error);
+        }
+      }
     }
 
     const [license] = await pool.query(
