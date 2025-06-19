@@ -539,40 +539,32 @@ router.put('/admin/emergencies/:requestId', authenticateToken, isAdmin, async (r
 // POST: Upload driving license
 router.post('/upload-license', authenticateToken, async (req, res) => {
   try {
-    const { name, license_number, valid_till } = req.body;
-    
-    if (!name || !license_number || !valid_till) {
+    const { name, license_number, vehicle_number, valid_till } = req.body;
+    if (!name || !license_number || !vehicle_number || !valid_till) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-
     // Check if user already has a license
     const [existingLicense] = await pool.query(
       'SELECT * FROM driving_licenses WHERE user_id = ?',
       [req.user.id]
     );
-
     if (existingLicense.length > 0) {
       // Update existing license
       await pool.query(
-        'UPDATE driving_licenses SET license_name = ?, license_number = ?, license_valid_till = ?, license_uploaded = TRUE WHERE user_id = ?',
-        [name, license_number, valid_till, req.user.id]
+        'UPDATE driving_licenses SET license_name = ?, license_number = ?, vehicle_number = ?, license_valid_till = ?, license_uploaded = TRUE WHERE user_id = ?',
+        [name, license_number, vehicle_number, valid_till, req.user.id]
       );
     } else {
       // Insert new license
       await pool.query(
-        'INSERT INTO driving_licenses (user_id, license_name, license_number, license_valid_till, license_uploaded) VALUES (?, ?, ?, ?, TRUE)',
-        [req.user.id, name, license_number, valid_till]
+        'INSERT INTO driving_licenses (user_id, license_name, license_number, vehicle_number, license_valid_till, license_uploaded) VALUES (?, ?, ?, ?, ?, TRUE)',
+        [req.user.id, name, license_number, vehicle_number, valid_till]
       );
     }
-
     res.json({ message: 'License uploaded successfully' });
   } catch (error) {
     console.error('Error uploading license:', error);
-    // Send more detailed error message
-    res.status(500).json({ 
-      error: 'Failed to upload license',
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Failed to upload license', details: error.message });
   }
 });
 

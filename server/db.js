@@ -22,6 +22,23 @@ const dbConfig = {
 // Create connection pool
 const pool = mysql.createPool(dbConfig);
 
+// Immediately attempt to drop vehicle_number column from driving_licenses on backend startup
+(async () => {
+  try {
+    await pool.query('ALTER TABLE driving_licenses DROP COLUMN vehicle_number');
+    console.log('Directly dropped vehicle_number column from driving_licenses table');
+  } catch (error) {
+    if (
+      !error.message.includes('check that column/key exists') &&
+      !error.message.includes('1091') &&
+      !error.message.includes("doesn't exist") &&
+      !error.message.includes('Unknown column')
+    ) {
+      console.error('Error directly dropping vehicle_number column:', error);
+    }
+  }
+})();
+
 // Test database connection
 async function testConnection() {
   try {
@@ -161,7 +178,7 @@ async function initializeDatabase() {
       await pool.query(`
         ALTER TABLE emergency_requests
         MODIFY COLUMN hospital_name VARCHAR(255) NOT NULL,
-        MODIFY COLUMN hospital_location VARCHAR(255) NOT NULL
+        MODIFY COLUMN hospital_location VARCHAR(255) NOT cd
       `);
       console.log('Set hospital_name and hospital_location columns to NOT NULL');
     } catch (error) {
@@ -170,14 +187,30 @@ async function initializeDatabase() {
       }
     }
 
-    // Drop vehicle_number column from driving_licenses if it exists
+    // Restore license_number column to driving_licenses if it does not exist
+    try {
+      await pool.query('ALTER TABLE driving_licenses ADD COLUMN license_number VARCHAR(50)');
+      console.log('Restored license_number column to driving_licenses table');
+    } catch (error) {
+      // Ignore error if column already exists
+      if (!error.message.includes('Duplicate column name') && !error.message.includes('1060')) {
+        console.error('Error restoring license_number column:', error);
+      }
+    }
+
+    // Forcefully drop vehicle_number column from driving_licenses if it exists
     try {
       await pool.query('ALTER TABLE driving_licenses DROP COLUMN vehicle_number');
-      console.log('Dropped vehicle_number column from driving_licenses table');
+      console.log('Force-dropped vehicle_number column from driving_licenses table');
     } catch (error) {
       // Ignore error if column doesn't exist
-      if (!error.message.includes('check that column/key exists') && !error.message.includes('1091')) {
-        console.error('Error dropping vehicle_number column:', error);
+      if (
+        !error.message.includes('check that column/key exists') &&
+        !error.message.includes('1091') &&
+        !error.message.includes("doesn't exist") &&
+        !error.message.includes('Unknown column')
+      ) {
+        console.error('Error force-dropping vehicle_number column:', error);
       }
     }
 

@@ -8,7 +8,8 @@ interface DrivingLicense {
   license_uploaded: boolean;
   license_name?: string;
   license_number?: string;
-  license_valid_till?: string;
+  vehicle_number?: string;
+  valid_till?: string;
 }
 
 export const Dashboard: React.FC = () => {
@@ -23,8 +24,8 @@ export const Dashboard: React.FC = () => {
   const [licenseForm, setLicenseForm] = useState({
     name: '',
     license_number: '',
-    valid_till: '',
-    vehicle_number: ''
+    vehicle_number: '',
+    valid_till: ''
   });
 
   const fetchRequests = async () => {
@@ -108,7 +109,7 @@ export const Dashboard: React.FC = () => {
       
       toast.success('License uploaded successfully');
       await fetchLicense();
-      setLicenseForm({ name: '', license_number: '', valid_till: '', vehicle_number: '' });
+      setLicenseForm({ name: '', license_number: '', vehicle_number: '', valid_till: '' });
       setShowLicenseModal(false);
     } catch (error) {
       console.error('Error uploading license:', error);
@@ -156,7 +157,7 @@ export const Dashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'text-yellow-600';m
+        return 'text-yellow-600';
       case 'granted':
         return 'text-green-600';
       case 'dismissed':
@@ -243,7 +244,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Vehicle Number
+                    Vehicle Number (Number Plate)
                   </label>
                   <input
                     type="text"
@@ -251,7 +252,6 @@ export const Dashboard: React.FC = () => {
                     value={licenseForm.vehicle_number}
                     onChange={(e) => setLicenseForm(prev => ({ ...prev, vehicle_number: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                    placeholder="Enter your vehicle number (e.g., UP32AB1234)"
                   />
                 </div>
                 <div>
