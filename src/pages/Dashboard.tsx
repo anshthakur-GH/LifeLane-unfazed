@@ -23,7 +23,8 @@ export const Dashboard: React.FC = () => {
   const [licenseForm, setLicenseForm] = useState({
     name: '',
     license_number: '',
-    valid_till: ''
+    valid_till: '',
+    vehicle_number: ''
   });
 
   const fetchRequests = async () => {
@@ -107,7 +108,7 @@ export const Dashboard: React.FC = () => {
       
       toast.success('License uploaded successfully');
       await fetchLicense();
-      setLicenseForm({ name: '', license_number: '', valid_till: '' });
+      setLicenseForm({ name: '', license_number: '', valid_till: '', vehicle_number: '' });
       setShowLicenseModal(false);
     } catch (error) {
       console.error('Error uploading license:', error);
@@ -239,6 +240,19 @@ export const Dashboard: React.FC = () => {
                     value={licenseForm.license_number}
                     onChange={(e) => setLicenseForm(prev => ({ ...prev, license_number: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={licenseForm.vehicle_number}
+                    onChange={(e) => setLicenseForm(prev => ({ ...prev, vehicle_number: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    placeholder="Enter your vehicle number (e.g., UP32AB1234)"
                   />
                 </div>
                 <div>
