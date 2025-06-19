@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, CheckCircle, XCircle, Key } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Key, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -7,6 +7,7 @@ export const AdminPanel: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
 
   const fetchRequests = async () => {
@@ -36,10 +37,36 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/messages/unread-count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch unread count');
+      const data = await res.json();
+      setUnreadCount(data.count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
-    const interval = setInterval(fetchRequests, 5000);
-    return () => clearInterval(interval);
+    fetchUnreadCount();
+    const requestsInterval = setInterval(fetchRequests, 5000);
+    const messagesInterval = setInterval(fetchUnreadCount, 30000);
+    return () => {
+      clearInterval(requestsInterval);
+      clearInterval(messagesInterval);
+    };
   }, []);
 
   const handleViewDetails = (request: any) => {
@@ -120,7 +147,21 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="pt-16 min-h-screen bg-bg-light">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-header mb-8">Admin Panel - Emergency Requests</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-header">Admin Panel - Emergency Requests</h1>
+          <button
+            onClick={() => navigate('/messages')}
+            className="inline-flex items-center bg-primary text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+          >
+            <MessageCircle className="w-5 h-5 mr-2" />
+            Messages
+            {unreadCount > 0 && (
+              <span className="ml-2 bg-white text-primary text-sm font-bold px-2 py-0.5 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <h2 className="text-2xl font-bold text-header mb-6">All Emergency Requests</h2>
           <div className="space-y-4">

@@ -1,73 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { Mail, CheckCircle } from 'lucide-react';
+import { Mail, Check } from 'lucide-react';
+import { API_URL } from '../config';
 
-interface Message {
-  id: number;
-  name: string;
-  email: string;
-  message: string;
-  created_at: string;
-  is_read: boolean;
-}
-
-const Messages: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+export const Messages: React.FC = () => {
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchMessages();
-  }, []);
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch('/api/messages', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
       }
 
-      const data = await response.json();
-      setMessages(data);
-    } catch (err) {
-      setError('Failed to load messages. Please try again later.');
-      console.error('Error fetching messages:', err);
+      const res = await fetch(`${API_URL}/api/messages`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      const data = await res.json();
+      
+      // Sort messages by date (newest first)
+      const sortedData = data.sort((a: any, b: any) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      
+      setMessages(sortedData);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMarkAsRead = async (id: number) => {
+  const markAsRead = async (messageId: number) => {
     try {
-      const response = await fetch(`/api/messages/${id}/read`, {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/messages/${messageId}/read`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to mark message as read');
-      }
-
+      if (!res.ok) throw new Error('Failed to mark message as read');
+      
+      // Update the message in the local state
       setMessages(messages.map(msg => 
-        msg.id === id ? { ...msg, is_read: true } : msg
+        msg.id === messageId ? { ...msg, is_read: true } : msg
       ));
-      if (selectedMessage?.id === id) {
+      if (selectedMessage?.id === messageId) {
         setSelectedMessage({ ...selectedMessage, is_read: true });
       }
-    } catch (err) {
-      console.error('Error marking message as read:', err);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
     }
   };
+
+  useEffect(() => {
+    fetchMessages();
+    // Refresh messages every 30 seconds
+    const interval = setInterval(fetchMessages, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
@@ -132,7 +137,7 @@ const Messages: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-500">
-                          {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
+                          {new Date(message.created_at).toLocaleString()}
                         </p>
                         {!message.is_read && (
                           <span className="inline-block mt-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded">
@@ -156,7 +161,7 @@ const Messages: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">
-                      {format(new Date(selectedMessage.created_at), 'MMM d, yyyy h:mm a')}
+                      {new Date(selectedMessage.created_at).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -165,10 +170,10 @@ const Messages: React.FC = () => {
                 </div>
                 {!selectedMessage.is_read && (
                   <button
-                    onClick={() => handleMarkAsRead(selectedMessage.id)}
+                    onClick={() => markAsRead(selectedMessage.id)}
                     className="mt-4 w-full flex items-center justify-center px-4 py-2 bg-success text-white rounded-lg hover:bg-success/90 transition-all"
                   >
-                    <CheckCircle className="w-5 h-5 mr-2" />
+                    <Check className="w-5 h-5 mr-2" />
                     Mark as Read
                   </button>
                 )}

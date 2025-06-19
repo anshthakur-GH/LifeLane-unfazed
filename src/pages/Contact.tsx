@@ -1,18 +1,43 @@
 import React, { useState } from 'react';
 import { Phone, Mail, Clock } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { API_URL } from '../config';
 
 const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle sending the form data (e.g., to an API or email service)
-    setSubmitted(true);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/send-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      setSubmitted(true);
+      toast.success('Message sent successfully!');
+      setForm({ name: '', email: '', message: '' });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -86,7 +111,8 @@ const Contact = () => {
                     value={form.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     placeholder="Enter your name"
                   />
                 </div>
@@ -99,7 +125,8 @@ const Contact = () => {
                     value={form.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     placeholder="Enter your email"
                   />
                 </div>
@@ -111,16 +138,18 @@ const Contact = () => {
                     value={form.message}
                     onChange={handleChange}
                     required
+                    disabled={isLoading}
                     rows={5}
-                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    className="w-full px-4 py-3 rounded-lg bg-bg-light border border-header text-header placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary resize-none disabled:opacity-50"
                     placeholder="Enter your message"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-fit px-8 py-3 rounded-full font-semibold text-white bg-gradient-to-r from-primary to-emergency hover:from-primary hover:to-emergency transition-all shadow-lg"
+                  disabled={isLoading}
+                  className="w-fit px-8 py-3 rounded-full font-semibold text-white bg-gradient-to-r from-primary to-emergency hover:from-primary hover:to-emergency transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {isLoading ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             )}

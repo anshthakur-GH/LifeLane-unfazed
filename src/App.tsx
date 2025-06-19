@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { EmergencyRequestForm } from './pages/EmergencyRequestForm';
 import RequestStatus from './pages/RequestStatus';
 import { AdminPanel } from './pages/AdminPanel';
+import { Messages } from './pages/Messages';
 import Contact from './pages/Contact';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -43,6 +44,11 @@ function App() {
             <Route path="/adminpanel" element={
               <ProtectedRoute requireAdmin>
                 <AdminPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/messages" element={
+              <ProtectedRoute requireAdmin>
+                <Messages />
               </ProtectedRoute>
             } />
             <Route path="/contact" element={<Contact />} />

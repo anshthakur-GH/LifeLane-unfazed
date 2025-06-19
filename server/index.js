@@ -716,6 +716,80 @@ router.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!' });
 });
 
+// POST: Send a new message from contact form
+router.post('/send-message', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !message) {
+      return res.status(400).json({
+        error: 'Missing required fields'
+      });
+    }
+
+    // Insert message into database
+    const [result] = await pool.query(
+      'INSERT INTO messages (name, email, message) VALUES (?, ?, ?)',
+      [name, email, message]
+    );
+
+    res.json({
+      success: true,
+      id: result.insertId,
+      message: 'Message sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// GET: Get all messages (admin only)
+router.get('/messages', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [messages] = await pool.query(
+      'SELECT * FROM messages ORDER BY created_at DESC'
+    );
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// PUT: Mark message as read (admin only)
+router.put('/messages/:messageId/read', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'UPDATE messages SET is_read = TRUE WHERE id = ?',
+      [req.params.messageId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    res.status(500).json({ error: 'Failed to update message' });
+  }
+});
+
+// GET: Get unread message count (admin only)
+router.get('/messages/unread-count', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'SELECT COUNT(*) as count FROM messages WHERE is_read = FALSE'
+    );
+    res.json({ count: result[0].count });
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    res.status(500).json({ error: 'Failed to get unread count' });
+  }
+});
+
 // Error handling middleware
 router.use((err, req, res, next) => {
   console.error('Server error:', {
