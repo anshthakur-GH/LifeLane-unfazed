@@ -109,18 +109,42 @@ async function initializeDatabase() {
       )
     `);
     
-    await pool.query(`CREATE TABLE IF NOT EXISTS driving_licenses (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      user_id INT NOT NULL,
-      license_name VARCHAR(255) NOT NULL,
-      license_number VARCHAR(50) NOT NULL,
-      license_valid_till DATE NOT NULL,
-      license_uploaded BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ); `
-  )
+    // First check if the table exists
+    const [tables] = await pool.query(
+      'SHOW TABLES LIKE "driving_licenses"'
+    );
+
+    if (tables.length === 0) {
+      // Table doesn't exist, create it
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS driving_licenses (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          user_id INT NOT NULL,
+          license_name VARCHAR(255) NOT NULL,
+          license_number VARCHAR(50) NOT NULL,
+          vehicle_number VARCHAR(20) NOT NULL,
+          license_valid_till DATE NOT NULL,
+          license_uploaded BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+    } else {
+      // Table exists, check if vehicle_number column exists
+      try {
+        await pool.query(`
+          ALTER TABLE driving_licenses
+          ADD COLUMN vehicle_number VARCHAR(20) NOT NULL
+        `);
+        console.log('Added vehicle_number column to driving_licenses table');
+      } catch (error) {
+        // Column might already exist, which is fine
+        if (!error.message.includes('Duplicate column name')) {
+          console.error('Error adding vehicle_number column:', error);
+        }
+      }
+    }
 
     // Create admin user if not exists
     const [adminExists] = await pool.query(
