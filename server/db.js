@@ -170,6 +170,17 @@ async function initializeDatabase() {
       }
     }
 
+    // Drop vehicle_number column from driving_licenses if it exists
+    try {
+      await pool.query('ALTER TABLE driving_licenses DROP COLUMN vehicle_number');
+      console.log('Dropped vehicle_number column from driving_licenses table');
+    } catch (error) {
+      // Ignore error if column doesn't exist
+      if (!error.message.includes('check that column/key exists') && !error.message.includes('1091')) {
+        console.error('Error dropping vehicle_number column:', error);
+      }
+    }
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
