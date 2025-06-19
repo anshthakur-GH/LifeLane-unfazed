@@ -35,7 +35,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // Initialize OpenAI only if API key is available
 let openai = null;
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 console.log('Checking OpenRouter API key:', OPENROUTER_API_KEY ? 'Present' : 'Missing');
 
