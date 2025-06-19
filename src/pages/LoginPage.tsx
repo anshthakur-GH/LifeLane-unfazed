@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone } from 'lucide-react';
+import { Mail, Lock, User, Phone, Car } from 'lucide-react';
 import { API_URL } from '../config';
 
 export const LoginPage: React.FC = () => {
@@ -12,6 +12,7 @@ export const LoginPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     fullName: '',
+    vehicleNumber: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +44,8 @@ export const LoginPage: React.FC = () => {
           body: JSON.stringify({
             email: formData.email,
             password: formData.password,
-            name: formData.fullName
+            name: formData.fullName,
+            vehicleNumber: formData.vehicleNumber
           }),
         });
 
@@ -200,6 +202,26 @@ export const LoginPage: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   placeholder="Enter your phone number"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'register' && (
+            <div>
+              <label className="block text-sm font-medium text-header mb-2">
+                Vehicle Number
+              </label>
+              <div className="relative">
+                <Car className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  name="vehicleNumber"
+                  value={formData.vehicleNumber}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  placeholder="Enter your vehicle number (e.g., UP32AB1234)"
                   required
                 />
               </div>

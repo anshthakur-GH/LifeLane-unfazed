@@ -19,7 +19,12 @@ const port = process.env.PORT || 10000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: isProduction ? 'https://lifelane-unfazed.onrender.com' : ['http://localhost:5173', 'http://localhost:5174'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

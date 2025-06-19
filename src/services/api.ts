@@ -7,13 +7,20 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   },
+  withCredentials: true
 });
 
 // Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
     console.log('Making request to:', config.url);
+    // Add auth token if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Phone, Mail, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { API_URL } from '../config';
+import api from '../services/api';
 
 const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -17,24 +17,13 @@ const Contact = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/send-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
+      const { data } = await api.post('/api/send-message', form);
       setSubmitted(true);
       toast.success('Message sent successfully!');
       setForm({ name: '', email: '', message: '' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message. Please try again.');
+      toast.error(error.response?.data?.error || 'Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
     }

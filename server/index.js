@@ -348,9 +348,9 @@ router.post('/chat', authenticateToken, async (req, res) => {
 // User routes
 router.post('/users/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, vehicleNumber } = req.body;
     
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !vehicleNumber) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -369,8 +369,8 @@ router.post('/users/register', async (req, res) => {
 
     // Insert new user
     const [result] = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-      [email, hashedPassword, name]
+      'INSERT INTO users (email, password, name, vehicle_number) VALUES (?, ?, ?, ?)',
+      [email, hashedPassword, name, vehicleNumber]
     );
 
     // Generate token
@@ -427,7 +427,8 @@ router.post('/users/login', async (req, res) => {
     res.json({ 
       token, 
       is_admin: user.is_admin,
-      name: user.name 
+      name: user.name,
+      vehicleNumber: user.vehicle_number
     });
   } catch (error) {
     console.error('Login error:', error);
