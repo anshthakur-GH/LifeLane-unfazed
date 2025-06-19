@@ -9,6 +9,7 @@ export const Status: React.FC = () => {
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -29,6 +30,14 @@ export const Status: React.FC = () => {
         }
         const data = await res.json();
         setRequest(data);
+        if (data.status === 'granted' && data.granted_at) {
+          const grantedTime = new Date(data.granted_at).getTime();
+          const now = Date.now();
+          const diff = Math.max(0, 10 * 60 - Math.floor((now - grantedTime) / 1000));
+          setTimeRemaining(diff);
+        } else {
+          setTimeRemaining(null);
+        }
       } catch (err) {
         setError('Failed to fetch request status');
       } finally {
@@ -40,6 +49,21 @@ export const Status: React.FC = () => {
     const interval = setInterval(fetchRequest, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (timeRemaining === null) return;
+    if (timeRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeRemaining]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -118,13 +142,20 @@ export const Status: React.FC = () => {
               <p className="mt-2 text-gray-600">{request.problem_description}</p>
             </div>
 
-            {request.status === 'granted' && request.code && (
+            {request.status === 'granted' && request.code && timeRemaining !== null && timeRemaining > 0 && (
               <div className="bg-green-50 p-4 rounded-lg">
                 <h2 className="text-lg font-semibold text-green-700">Activation Code</h2>
                 <p className="mt-2 text-2xl font-mono text-green-600">{request.code}</p>
                 <p className="mt-2 text-sm text-green-600">
                   Use this code to activate your siren device. This code is valid for one-time use only.
                 </p>
+              </div>
+            )}
+            {request.status === 'granted' && timeRemaining !== null && timeRemaining > 0 && (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h2 className="text-lg font-semibold text-yellow-700">Time Remaining</h2>
+                <p className="text-2xl font-mono text-yellow-600">{formatTime(timeRemaining)}</p>
+                <p className="text-sm text-yellow-700">Siren code is valid for 10 minutes from approval</p>
               </div>
             )}
 

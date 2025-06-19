@@ -165,7 +165,7 @@ const RequestStatus: React.FC = () => {
             </h2>
           </div>
 
-          {request.status === 'granted' && request.code && (
+          {request.status === 'granted' && request.code && timeRemaining !== null && timeRemaining > 0 && (
             <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-lg p-4 text-white text-center shadow-md">
               <h3 className="text-lg font-semibold mb-1">Your Siren Code</h3>
               <div className="flex items-center justify-center space-x-2">
