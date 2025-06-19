@@ -14,16 +14,6 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Test environment variables
-console.log('=== Environment Variables Test ===');
-console.log('Database Configuration:');
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_PORT:', process.env.DB_PORT);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set (hidden for security)' : 'Not set');
-console.log('PORT:', process.env.PORT);
-console.log('================================');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +27,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 let openai = null;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-console.log('Checking OpenRouter API key:', OPENROUTER_API_KEY ? 'Present' : 'Missing');
 
 if (OPENROUTER_API_KEY) {
   try {
@@ -83,7 +72,6 @@ router.use(bodyParser.urlencoded({ extended: true }));
 const authenticateToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    console.log('Auth header:', authHeader);
 
     if (!authHeader) {
       console.error('No authorization header found');
@@ -96,13 +84,11 @@ const authenticateToken = (req, res, next) => {
       return res.status(401).json({ error: 'No token found in authorization header' });
     }
 
-    console.log('Verifying token...');
     jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) {
         console.error('Token verification failed:', err.message);
         return res.status(401).json({ error: 'Invalid token' });
       }
-      console.log('Token verified for user:', user.id);
       req.user = user;
       next();
     });
@@ -277,7 +263,6 @@ function matchIntent(message, intents) {
   
   // First try exact matches
   for (const intent of intents) {
-    console.log('Checking intent:', intent.tag);
     for (const pattern of intent.patterns) {
       const patternLower = pattern.toLowerCase();
       if (msg === patternLower) {
@@ -291,7 +276,6 @@ function matchIntent(message, intents) {
   
   // Then try partial matches
   for (const intent of intents) {
-    console.log('Checking intent for partial match:', intent.tag);
     for (const pattern of intent.patterns) {
       const patternLower = pattern.toLowerCase();
       // Check if the pattern is a complete word in the message
