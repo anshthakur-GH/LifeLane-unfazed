@@ -136,6 +136,11 @@ export const Status: React.FC = () => {
               <p className="mt-2 text-gray-600">Name: {request.patient_name}</p>
               <p className="text-gray-600">Age: {request.age}</p>
             </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-700">Hospital Information</h2>
+              <p className="text-gray-600">Hospital: {request.hospital_name}</p>
+              <p className="text-gray-600">Location: {request.hospital_location}</p>
+            </div>
 
             <div>
               <h2 className="text-lg font-semibold text-gray-700">Emergency Description</h2>

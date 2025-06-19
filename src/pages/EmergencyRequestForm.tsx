@@ -8,6 +8,8 @@ export const EmergencyRequestForm: React.FC = () => {
     patientName: '',
     age: '',
     problemDescription: '',
+    hospitalName: '',
+    hospitalLocation: '',
   });
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -145,6 +147,40 @@ export const EmergencyRequestForm: React.FC = () => {
                     placeholder="Enter patient's age"
                     min="1"
                     max="120"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-header mb-3">
+                  Hospital Name *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="hospitalName"
+                    value={formData.hospitalName}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    placeholder="Enter hospital name"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-header mb-3">
+                  Hospital Location *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="hospitalLocation"
+                    value={formData.hospitalLocation}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    placeholder="Enter hospital location"
                     required
                   />
                 </div>

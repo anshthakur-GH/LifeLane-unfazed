@@ -13,6 +13,8 @@ interface Request {
   created_at: string;
   code?: string;
   granted_at?: string;
+  hospital_name: string;
+  hospital_location: string;
 }
 
 const RequestStatus: React.FC = () => {
@@ -203,6 +205,14 @@ const RequestStatus: React.FC = () => {
                 <div className="min-w-0 flex flex-col">
                   <p className="text-sm font-medium text-gray-500 flex-shrink-0">Age</p>
                   <p className="mt-0.5 text-base text-gray-900 font-semibold">{request.age}</p>
+                </div>
+                <div className="min-w-0 flex flex-col">
+                  <p className="text-sm font-medium text-gray-500 flex-shrink-0">Hospital</p>
+                  <p className="mt-0.5 text-base text-gray-900 font-semibold break-words overflow-hidden">{request.hospital_name}</p>
+                </div>
+                <div className="min-w-0 flex flex-col">
+                  <p className="text-sm font-medium text-gray-500 flex-shrink-0">Location</p>
+                  <p className="mt-0.5 text-base text-gray-900 font-semibold break-words overflow-hidden">{request.hospital_location}</p>
                 </div>
               </div>
             </div>

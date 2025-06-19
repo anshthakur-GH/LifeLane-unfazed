@@ -123,19 +123,19 @@ router.get('/test-db', async (req, res) => {
 // POST: Save new emergency request
 router.post('/emergency-request', authenticateToken, async (req, res) => {
   try {
-    const { patientName, age, problemDescription } = req.body;
-    
-    if (!patientName || !age || !problemDescription) {
+    const { patientName, age, problemDescription, hospitalName, hospitalLocation } = req.body;
+    if (!patientName || !age || !problemDescription || !hospitalName || !hospitalLocation) {
       return res.status(400).json({
-        error: 'Missing required fields'
+        error: 'All fields are required'
       });
     }
-
+    // Sanitize input
+    const sanitizedHospitalName = hospitalName.trim();
+    const sanitizedHospitalLocation = hospitalLocation.trim();
     const [result] = await pool.query(
-      'INSERT INTO emergency_requests (user_id, patient_name, age, problem_description) VALUES (?, ?, ?, ?)',
-      [req.user.id, patientName, age, problemDescription]
+      'INSERT INTO emergency_requests (user_id, patient_name, age, problem_description, hospital_name, hospital_location) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, patientName, age, problemDescription, sanitizedHospitalName, sanitizedHospitalLocation]
     );
-
     res.json({
       success: true,
       id: result.insertId,

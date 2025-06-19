@@ -74,6 +74,8 @@ async function initializeDatabase() {
         patient_name VARCHAR(255) NOT NULL,
         age INT NOT NULL,
         problem_description TEXT NOT NULL,
+        hospital_name VARCHAR(255) NOT NULL,
+        hospital_location VARCHAR(255) NOT NULL,
         status ENUM('pending', 'granted', 'dismissed') DEFAULT 'pending',
         code VARCHAR(6),
         granted_at TIMESTAMP NULL,
@@ -131,6 +133,41 @@ async function initializeDatabase() {
         'INSERT INTO users (email, password, name, is_admin) VALUES (?, ?, ?, ?)',
         ['admin@gmail.com', hashedPassword, 'Admin User', true]
       );
+    }
+
+    // Add hospital_name and hospital_location columns if they don't exist (nullable for migration safety)
+    try {
+      await pool.query(`
+        ALTER TABLE emergency_requests
+        ADD COLUMN hospital_name VARCHAR(255) NULL,
+        ADD COLUMN hospital_location VARCHAR(255) NULL
+      `);
+      console.log('Added hospital_name and hospital_location columns to emergency_requests table');
+    } catch (error) {
+      // Columns might already exist, which is fine
+      if (!error.message.includes('Duplicate column name') && !error.message.includes('Duplicate column') && !error.message.includes('1060')) {
+        console.error('Error adding hospital_name/hospital_location columns:', error);
+      }
+    }
+    // Backfill NULLs to empty string for existing rows
+    try {
+      await pool.query(`UPDATE emergency_requests SET hospital_name = '' WHERE hospital_name IS NULL`);
+      await pool.query(`UPDATE emergency_requests SET hospital_location = '' WHERE hospital_location IS NULL`);
+    } catch (error) {
+      console.error('Error backfilling hospital_name/hospital_location:', error);
+    }
+    // Make columns NOT NULL after backfill
+    try {
+      await pool.query(`
+        ALTER TABLE emergency_requests
+        MODIFY COLUMN hospital_name VARCHAR(255) NOT NULL,
+        MODIFY COLUMN hospital_location VARCHAR(255) NOT NULL
+      `);
+      console.log('Set hospital_name and hospital_location columns to NOT NULL');
+    } catch (error) {
+      if (!error.message.includes('Duplicate column name') && !error.message.includes('Duplicate column') && !error.message.includes('1060')) {
+        console.error('Error setting hospital_name/hospital_location to NOT NULL:', error);
+      }
     }
 
     console.log('Database initialized successfully');

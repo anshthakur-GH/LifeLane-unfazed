@@ -180,6 +180,10 @@ export const AdminPanel: React.FC = () => {
                         {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                       </span>
                     </div>
+                    <p className="text-gray-600 mb-2">
+                      <strong>Hospital:</strong> {request.hospital_name} <br />
+                      <strong>Location:</strong> {request.hospital_location}
+                    </p>
                     <p className="text-gray-600 mb-2">{request.problem_description}</p>
                     <div className="text-sm text-gray-500">
                       <span>Age: {request.age}</span>
@@ -233,6 +237,11 @@ export const AdminPanel: React.FC = () => {
                     <p className="text-2xl font-mono text-green-600 mt-2">{selectedRequest.code}</p>
                   </div>
                 )}
+                <div>
+                  <h3 className="font-semibold text-gray-700">Hospital Information</h3>
+                  <p className="text-gray-600">Hospital: {selectedRequest.hospital_name}</p>
+                  <p className="text-gray-600">Location: {selectedRequest.hospital_location}</p>
+                </div>
               </div>
               {selectedRequest.status === 'pending' && (
                 <div className="flex gap-4 mt-6">

@@ -156,7 +156,7 @@ export const Dashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'text-yellow-600';
+        return 'text-yellow-600';m
       case 'granted':
         return 'text-green-600';
       case 'dismissed':
@@ -180,19 +180,18 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             {!isAdmin && (
-              <div className="mt-6 md:mt-0 flex flex-col items-end gap-4">
+              <div className="mt-6 md:mt-0 flex flex-col items-end gap-4 w-full max-w-xs">
                 <Link
                   to="/request"
-                  className="inline-flex items-center bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg"
+                  className="w-full inline-flex items-center justify-center bg-primary text-white py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg text-base"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   New Emergency Request
                 </Link>
-                
                 {!isLoadingLicense && license && !license.license_uploaded && (
                   <button
                     onClick={() => setShowLicenseModal(true)}
-                    className="inline-flex items-center bg-yellow-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg"
+                    className="w-full inline-flex items-center justify-center bg-yellow-500 text-white py-3 rounded-xl font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105 shadow-lg text-base"
                   >
                     <FileText className="w-5 h-5 mr-2" />
                     Verify Your Driving License
