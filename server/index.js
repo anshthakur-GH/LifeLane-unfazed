@@ -332,9 +332,9 @@ router.post('/chat', authenticateToken, async (req, res) => {
 // User routes
 router.post('/users/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, vehicleNumber } = req.body;
     
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !vehicleNumber) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -353,8 +353,8 @@ router.post('/users/register', async (req, res) => {
 
     // Insert new user
     const [result] = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-      [email, hashedPassword, name]
+      'INSERT INTO users (email, password, name, vehicle_number) VALUES (?, ?, ?, ?)',
+      [email, hashedPassword, name, vehicleNumber]
     );
 
     // Generate token
@@ -411,7 +411,8 @@ router.post('/users/login', async (req, res) => {
     res.json({ 
       token, 
       is_admin: user.is_admin,
-      name: user.name 
+      name: user.name,
+      vehicleNumber: user.vehicle_number
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -539,10 +540,10 @@ router.put('/admin/emergencies/:requestId', authenticateToken, isAdmin, async (r
 // POST: Upload driving license
 router.post('/upload-license', authenticateToken, async (req, res) => {
   try {
-    const { name, license_number, valid_till } = req.body;
+    const { name, license_number, valid_till, vehicle_number } = req.body;
     
     // Validate required fields
-    if (!name || !license_number || !valid_till) {
+    if (!name || !license_number || !valid_till || !vehicle_number) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -555,16 +556,22 @@ router.post('/upload-license', authenticateToken, async (req, res) => {
     if (existingLicense.length > 0) {
       // Update existing license
       await pool.query(
-        'UPDATE driving_licenses SET license_name = ?, license_number = ?, license_valid_till = ?, license_uploaded = TRUE WHERE user_id = ?',
-        [name, license_number, valid_till, req.user.id]
+        'UPDATE driving_licenses SET license_name = ?, license_number = ?, license_valid_till = ?, vehicle_number = ?, license_uploaded = TRUE WHERE user_id = ?',
+        [name, license_number, valid_till, vehicle_number, req.user.id]
       );
     } else {
       // Insert new license
       await pool.query(
-        'INSERT INTO driving_licenses (user_id, license_name, license_number, license_valid_till, license_uploaded) VALUES (?, ?, ?, ?, TRUE)',
-        [req.user.id, name, license_number, valid_till]
+        'INSERT INTO driving_licenses (user_id, license_name, license_number, license_valid_till, vehicle_number, license_uploaded) VALUES (?, ?, ?, ?, ?, TRUE)',
+        [req.user.id, name, license_number, valid_till, vehicle_number]
       );
     }
+
+    // Update user's vehicle number
+    await pool.query(
+      'UPDATE users SET vehicle_number = ? WHERE id = ?',
+      [vehicle_number, req.user.id]
+    );
 
     res.json({ message: 'License uploaded successfully' });
   } catch (error) {

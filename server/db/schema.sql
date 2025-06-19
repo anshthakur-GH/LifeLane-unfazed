@@ -1,3 +1,14 @@
+-- Create users table if not exists
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  vehicle_number VARCHAR(20) NOT NULL,
+  is_admin BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create activation_codes table
 CREATE TABLE IF NOT EXISTS activation_codes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -19,4 +30,18 @@ INSERT INTO activation_codes (code) VALUES
 ("1B3D#"), ("A3C2#"), ("C1B2#"), ("D4A3#"), ("2D3B#"), ("B4C1#"), ("A1B3#"), ("C3D2#"), ("D2B4#"), ("3A2C#"),
 ("B1D3#"), ("C4A1#"), ("A2C4#"), ("D1B3#"), ("4B2A#"), ("C1A3#"), ("D3B1#"), ("A4C2#"), ("2C3B#"), ("B2D1#"),
 ("A3B2#"), ("C2D4#"), ("D4C1#"), ("B3A4#"), ("1C4D#"), ("A1D3#"), ("C3B2#"), ("D2A4#"), ("B4D3#"), ("C1B3#"),
-("2A1C#"), ("D4C3#"), ("A2B4#"), ("B1C3#"), ("C4A2#"), ("D3A1#"), ("3B1C#"), ("A4D2#"), ("B3C4#"), ("C2A1#"); 
+("2A1C#"), ("D4C3#"), ("A2B4#"), ("B1C3#"), ("C4A2#"), ("D3A1#"), ("3B1C#"), ("A4D2#"), ("B3C4#"), ("C2A1#");
+
+-- Create driving_licenses table
+CREATE TABLE IF NOT EXISTS driving_licenses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    license_name VARCHAR(255) NOT NULL,
+    license_number VARCHAR(50) NOT NULL,
+    vehicle_number VARCHAR(20) NOT NULL,
+    license_valid_till DATE NOT NULL,
+    license_uploaded BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+); 

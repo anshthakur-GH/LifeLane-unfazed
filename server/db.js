@@ -61,10 +61,25 @@ async function initializeDatabase() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
+        vehicle_number VARCHAR(20),
         is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add vehicle_number column if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN vehicle_number VARCHAR(20)
+      `);
+      console.log('Added vehicle_number column to users table');
+    } catch (error) {
+      // Column might already exist, which is fine
+      if (!error.message.includes('Duplicate column name')) {
+        console.error('Error adding vehicle_number column:', error);
+      }
+    }
 
     // Create emergency_requests table
     await pool.query(`
