@@ -178,7 +178,7 @@ async function initializeDatabase() {
       await pool.query(`
         ALTER TABLE emergency_requests
         MODIFY COLUMN hospital_name VARCHAR(255) NOT NULL,
-        MODIFY COLUMN hospital_location VARCHAR(255) NOT cd
+        MODIFY COLUMN hospital_location VARCHAR(255) NOT NULL
       `);
       console.log('Set hospital_name and hospital_location columns to NOT NULL');
     } catch (error) {
